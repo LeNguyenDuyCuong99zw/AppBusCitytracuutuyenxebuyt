@@ -6,13 +6,11 @@ plugins {
 
 android {
     namespace = "com.map.buscity"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.map.buscity"
-        minSdk = 36
+        minSdk = 34
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
