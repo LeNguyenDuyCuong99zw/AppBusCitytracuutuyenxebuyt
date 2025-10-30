@@ -138,7 +138,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(8.dp))
 
             // Search bar overlaps header slightly and stretches to edges (minimal horizontal inset)
-            val searchOverlap = statusBarHeight / 2 + 12.dp
+            val searchOverlap = statusBarHeight / 2 - 8.dp  // Reduced overlap to move searchbar down
             Box(modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .offset(y = -searchOverlap)
@@ -162,7 +162,6 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                         Box(modifier = Modifier
                             .size(36.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF2F2F2))
                             .offset(y = 10.dp), contentAlignment = Alignment.Center) {
                             Image(
                                 painter = painterResource(id = R.drawable.search_bus),
@@ -195,8 +194,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             // Big mode buttons (Buýt, Metro, Trạm)
             Row(modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly) {
+                .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
                 // pass the suggested drawable names (you will add these files under res/drawable/)
                 ModeButton(label = "Buýt", gradientColors = listOf(Color(0xFFB8F7C9), Color(0xFF6EDB9A)), iconEmoji = "🚌", iconResName = "mode_bus")
                 ModeButton(label = "Metro", gradientColors = listOf(Color(0xFFAEE9F7), Color(0xFF5FD0EE)), iconEmoji = "🚆", iconResName = "mode_metro")
@@ -216,15 +215,13 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Feature grid (responsive)
-            // Use LazyVerticalGrid with adaptive columns so the items adapt to available width.
             val features = listOf(
-                Triple("Tìm đường", "feature_timduong", listOf(Color(0xFFFFD9A8), Color(0xFFFFC07A))),
-                Triple("Tra cứu", "feature_tracuu", listOf(Color(0xFFD6DBFF), Color(0xFFAFC1FF))),
-                Triple("Trạm xung quanh", "feature_tramxungquanh", listOf(Color(0xFF9EEBFB), Color(0xFF66E1F8))),
-                Triple("Đánh giá góp ý", "feature_danhgia", listOf(Color(0xFFFFC0F0), Color(0xFFFF8DE2))),
-                Triple("Tin tức", "feature_tintuc", listOf(Color(0xFFFFF7A8), Color(0xFFFFF0A8))),
-                Triple("Hướng dẫn dùng App", "feature_huongdan", listOf(Color(0xFF9EF7C9), Color(0xFF59ECA4)))
+                Triple("Tìm đường", "feature_timduong", listOf(Color(0xFFFFB199), Color(0xFFFFC07A))),
+                Triple("Tra cứu", "feature_tracuu", listOf(Color(0xFFD3D9FF), Color(0xFF8BA3E8))),
+                Triple("Trạm xung quanh", "feature_tramxungquanh", listOf(Color(0xFF49E2FD), Color(0xFF66E1F8))),
+                Triple("Đánh giá góp ý", "feature_danhgia", listOf(Color(0xFFEC53D0), Color(0xFFDD42C1))),
+                Triple("Tin tức", "feature_tintuc", listOf(Color(0xFFF9FFAB), Color(0xFFF0F69C))),
+                Triple("Hướng dẫn dùng App", "feature_huongdan", listOf(Color(0xFF8CFBAA), Color(0xFF7AEC98)))
             )
 
             LazyVerticalGrid(
@@ -236,8 +233,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(features) { feature ->
-                    val (label, iconName, gradient) = feature
-                    FeatureItem(label = label, iconResName = iconName, iconEmoji = "�", gradientColors = gradient)
+                    val (label, iconName, gradientColors) = feature
+                    FeatureItem(label = label, iconResName = iconName, iconEmoji = "�", gradientColors = gradientColors)
                 }
             }
 
@@ -293,19 +290,19 @@ private fun ModeButton(
     // Button close to design: tall rounded rectangle with inner white circle for icon and label inside color area
     Box(
         modifier = Modifier
-            .size(width = 110.dp, height = 130.dp)
+            .size(width = 114.dp, height = 130.dp)
             // stronger drop shadow for the card
             .shadow(12.dp, shape = RoundedCornerShape(20.dp))
             // white outline like the mock (subtle; use semi-transparent to avoid pure white pop)
-            .border(width = 4.dp, color = Color.White.copy(alpha = 0.98f), shape = RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
+            .border(width = 2.dp, color = Color.White.copy(alpha = 0.98f), shape = RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(25.dp))
             .background(brush = Brush.linearGradient(colors = gradientColors)),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(width = 89.dp, height = 72.dp)
                     // stronger inner tile shadow and thin border for the inner white tile
                     .shadow(8.dp, shape = RoundedCornerShape(18.dp))
                     .clip(RoundedCornerShape(16.dp))
@@ -320,7 +317,7 @@ private fun ModeButton(
                 } ?: 0
 
                 if (resolvedId != null && resolvedId != 0) {
-                    Image(painter = painterResource(id = resolvedId), contentDescription = label, modifier = Modifier.size(36.dp))
+                    Image(painter = painterResource(id = resolvedId), contentDescription = label, modifier = Modifier.size(width = 45.dp, height = 44.dp))
                 } else {
                     Text(text = iconEmoji, fontSize = 30.sp)
                 }
@@ -328,7 +325,6 @@ private fun ModeButton(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Label sits inside color area near bottom; use smaller font and slight shadow for clarity
             Text(text = label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         }
     }
@@ -339,7 +335,7 @@ private fun FeatureItem(
     label: String,
     iconResName: String? = null,
     iconEmoji: String = "🔖",
-    gradientColors: List<Color> = listOf(Color(0xFFF6C88D), Color(0xFFFFE7C9))
+    gradientColors: List<Color> = listOf(Color(0xFFF6C88D), Color(0xFFE5B77E))
 ) {
     val context = LocalContext.current
     val resolvedId = iconResName?.let { name ->
@@ -350,10 +346,8 @@ private fun FeatureItem(
         Box(modifier = Modifier
             .size(72.dp)
             .clip(RoundedCornerShape(18.dp))
-            // stronger shadow to match mock
-            .shadow(10.dp, shape = RoundedCornerShape(18.dp))
-            // subtle white outline to give the raised tile look
-            .border(width = 0.5.dp, color = Color.White.copy(alpha = 0.8f), shape = RoundedCornerShape(18.dp))
+            .shadow(12.dp, shape = RoundedCornerShape(18.dp))
+            .border(width = 2.dp, color = Color.White.copy(alpha = 0.98f), shape = RoundedCornerShape(18.dp))
             .background(brush = Brush.linearGradient(colors = gradientColors)), contentAlignment = Alignment.Center) {
             if (resolvedId != 0) {
                 Image(painter = painterResource(id = resolvedId), contentDescription = label, modifier = Modifier.size(32.dp))
