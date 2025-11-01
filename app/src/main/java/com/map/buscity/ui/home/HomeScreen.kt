@@ -62,40 +62,55 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.offset
 import com.map.buscity.R
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.*
+import androidx.navigation.compose.rememberNavController
 
-@Composable
+
+
 @OptIn(ExperimentalMaterial3Api::class)
-fun HomeScreen(modifier: Modifier = Modifier) {
+@Composable
+fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
+    var selectedTabIndex by remember { mutableStateOf(0) } // state cho bottom navigation
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color(0xFFF6F7FB),
         bottomBar = {
             NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
-                var selectedIndex = 0 // local simple state not preserved across recompositions; it's illustrative
                 NavigationBarItem(
-                    selected = true,
-                    onClick = { /* TODO navigate */ },
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0 },
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text(text = "Trang chủ", fontSize = 11.sp) },
-                    colors = NavigationBarItemDefaults.colors(selectedIconColor = Color(0xFF63EE83), selectedTextColor = Color(0xFF63EE83))
+                    label = { Text("Trang chủ", fontSize = 11.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF63EE83),
+                        selectedTextColor = Color(0xFF63EE83)
+                    )
                 )
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { /* TODO */ },
-                    icon = { Icon(Icons.Filled.Notifications, contentDescription = "Notifications") },
-                    label = { Text(text = "Thông báo", fontSize = 11.sp) }
+                    selected = selectedTabIndex == 1,
+                    onClick = {
+                        selectedTabIndex = 1
+                        navController.navigate("news")
+                    },
+                    icon = { Icon(Icons.Filled.Notifications, contentDescription = "Thông báo") },
+                    label = { Text("Thông báo", fontSize = 11.sp) }
                 )
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { /* TODO */ },
-                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Fav") },
-                    label = { Text(text = "Yêu thích", fontSize = 11.sp) }
+                    selected = selectedTabIndex == 2,
+                    onClick = { selectedTabIndex = 2 },
+                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Yêu thích") },
+                    label = { Text("Yêu thích", fontSize = 11.sp) }
                 )
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { /* TODO */ },
-                    icon = { Icon(Icons.Filled.Person, contentDescription = "Account") },
-                    label = { Text(text = "Tài khoản", fontSize = 11.sp) }
+                    selected = selectedTabIndex == 3,
+                    onClick = { selectedTabIndex = 3 },
+                    icon = { Icon(Icons.Filled.Person, contentDescription = "Tài khoản") },
+                    label = { Text("Tài khoản", fontSize = 11.sp) }
                 )
             }
         }
@@ -203,7 +218,7 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            
+
             // Section title
             Text(
                 text = "Tính năng thông minh",
@@ -357,10 +372,10 @@ private fun FeatureItem(
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = label, 
-            fontSize = 13.sp, 
-            textAlign = TextAlign.Center, 
-            modifier = Modifier.width(80.dp), 
+            text = label,
+            fontSize = 13.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(80.dp),
             color = Color(0xFF222222),
             maxLines = 2
         )
