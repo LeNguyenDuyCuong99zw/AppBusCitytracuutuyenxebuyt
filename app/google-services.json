@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "80584192899",
+    "firebase_url": "https://buscityapp-default-rtdb.firebaseio.com",
+    "project_id": "buscityapp",
+    "storage_bucket": "buscityapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:80584192899:android:005fc34c2bc1c090823cb6",
+        "android_client_info": {
+          "package_name": "com.map.buscity"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "80584192899-p1ino4glt1ugni23nat96ahpv16t8n0p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.map.buscity",
+            "certificate_hash": "cb8d90875bd076525e91cfe24f132c449600d207"
+          }
+        },
+        {
+          "client_id": "80584192899-4m2vr8h84nk1tv1b7dorressbltgaark.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCknADtCHfXDClWl3I3YQKZtn5m2ppf70o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "80584192899-4m2vr8h84nk1tv1b7dorressbltgaark.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
