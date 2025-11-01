@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import com.map.buscity.ui.theme.BusCityTheme
 import com.map.buscity.ui.splash.SplashScreen
 import com.map.buscity.ui.home.HomeScreen
+import com.map.buscity.ui.account.HomeScreen as AccountHomeScreen
 import kotlinx.coroutines.delay
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -36,10 +37,8 @@ class MainActivity : ComponentActivity() {
             BusCityTheme {
                 val navController = rememberNavController()
                 var showSplash by remember { mutableStateOf(true) }
-
-                // Splash screen delay
                 LaunchedEffect(Unit) {
-                    delay(3000L) // 3 giây
+                    delay(5000L)
                     showSplash = false
                 }
 
@@ -65,6 +64,9 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("news") {
                                 NewsScreen()
+                            }
+                            composable("account") {
+                                AccountHomeScreen(userName = "Người dùng", avatarUrl = null)
                             }
                         }
                     }

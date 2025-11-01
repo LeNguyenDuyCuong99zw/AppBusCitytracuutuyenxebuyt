@@ -108,7 +108,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 )
                 NavigationBarItem(
                     selected = selectedTabIndex == 3,
-                    onClick = { selectedTabIndex = 3 },
+                    onClick = {
+                        selectedTabIndex = 3
+                        navController.navigate("account")
+                    },
                     icon = { Icon(Icons.Filled.Person, contentDescription = "Tài khoản") },
                     label = { Text("Tài khoản", fontSize = 11.sp) }
                 )
