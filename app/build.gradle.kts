@@ -58,4 +58,22 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.0")
     implementation("androidx.navigation:navigation-compose:2.7.3")
 // version mới nhất
+
+    // --- Jetpack Compose cơ bản ---
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.compose.ui:ui:1.6.7")
+    implementation("androidx.compose.material3:material3:1.3.0")
+    implementation("androidx.compose.ui:ui-tooling-preview:1.6.7")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.6.7")
+
+    // --- Icons (bộ biểu tượng dùng trong Login/Register/Home) ---
+    implementation("androidx.compose.material:material-icons-core:1.6.7")
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
+
+    // --- Coil để load ảnh online (dùng trong HomeActivity) ---
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // --- Các thư viện cơ bản của AndroidX ---
+    implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
 }
