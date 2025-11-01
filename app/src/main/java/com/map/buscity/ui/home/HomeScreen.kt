@@ -182,7 +182,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                                 painter = painterResource(id = R.drawable.search_bus),
                                 contentDescription = "logo",
                                 modifier = Modifier.size(28.dp),
-                                contentScale = ContentScale.Fit
+                                contentScale = ContentScale.Fit 
                             )
                         }
 
