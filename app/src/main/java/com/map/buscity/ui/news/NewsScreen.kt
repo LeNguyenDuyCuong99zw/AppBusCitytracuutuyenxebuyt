@@ -2,206 +2,242 @@ package com.map.buscity.ui.news
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-
-// Compose Material3 & Icons
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-
-// Compose Runtime & State
 import androidx.compose.runtime.*
-
-// Compose UI
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.navigation.NavController
+import com.map.buscity.R
 
+data class NotificationItem(val title: String, val image: Int)
 
-// Android resources
-import com.map.buscity.R // Thay bằng package của bạn
-
-val AppGreen = Color(0xFF4CAF50)
-val LightGrayBackground = Color(0xFFF0F0F0)
-
-// --- DATA CLASS MẪU ---
-data class NewsItem(val title: String, val date: String, val isMainItem: Boolean = true)
-data class NotificationItem(val title: String, val date: String, val isHot: Boolean = false, val type: String)
-
-// --- COMPOSABLE CHÍNH ---
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewsScreen() {
-    var selectedTabIndex by remember { mutableStateOf(1) }
+fun NewsScreen(navController: NavController) {
+    var selectedTabIndex by remember { mutableStateOf(1) }   // bottom nav
+    var selectedTab by remember { mutableStateOf(0) }         // tabs: tin tức / thông báo
+    val tabs = listOf("Tin tức", "Thông báo")
 
     Scaffold(
-        topBar = {
-            Column {
-                TopTitleAndStatusBar()
-                TopTabs(selectedTabIndex = selectedTabIndex, onTabSelected = { selectedTabIndex = it })
-                SearchBar(Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+        modifier = Modifier.fillMaxSize(),
+        containerColor = Color(0xFFF6F7FB),
+        bottomBar = {
+            NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
+                NavigationBarItem(
+                    selected = selectedTabIndex == 0,
+                    onClick = {
+                        selectedTabIndex = 0
+                        navController.navigate("home")
+                    },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                    label = { Text("Trang chủ", fontSize = 11.sp) }
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1 },
+                    icon = { Icon(Icons.Filled.Notifications, contentDescription = "Thông báo") },
+                    label = { Text("Thông báo", fontSize = 11.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF63EE83),
+                        selectedTextColor = Color(0xFF63EE83)
+                    )
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 2,
+                    onClick = {
+                        selectedTabIndex = 2
+                        navController.navigate("favorite")
+                    },
+                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Yêu thích") },
+                    label = { Text("Yêu thích", fontSize = 11.sp) }
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 3,
+                    onClick = {
+                        selectedTabIndex = 3
+                        navController.navigate("account")
+                    },
+                    icon = { Icon(Icons.Filled.Person, contentDescription = "Tài khoản") },
+                    label = { Text("Tài khoản", fontSize = 11.sp) }
+                )
             }
         }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            when (selectedTabIndex) {
-                0 -> NotificationContent()
-                1 -> NewsContent()
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+        ) {
+            // HEADER với back1.png + text nổi với shadow
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            ) {
+                // Background xanh
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF63EE83))
+                )
+
+                // Hình back1.png phủ header
+                Image(
+                    painter = painterResource(id = R.drawable.back1),
+                    contentDescription = "Back Image",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                // Shadow text: text màu đen, offset nhẹ
+                Text(
+                    text = "Tin tức và Thông báo",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(x = 2.dp, y = 2.dp)
+                )
+
+                // Main text màu trắng
+                Text(
+                    text = "Tin tức và Thông báo",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
-        }
-    }
-}
 
-// --- TOP STATUS BAR ---
-@Composable
-fun TopTitleAndStatusBar() {
-    Box(
-        modifier = Modifier.fillMaxWidth().height(56.dp).background(Color.White),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("TIN TỨC VÀ THÔNG BÁO", fontWeight = FontWeight.Bold, color = Color.DarkGray)
-    }
-}
-
-// --- TAB BAR ---
-@Composable
-fun TopTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    TabRow(
-        selectedTabIndex = selectedTabIndex,
-        modifier = Modifier.fillMaxWidth(),
-        containerColor = Color.White,
-        contentColor = AppGreen,
-        indicator = { tabPositions ->
-            TabRowDefaults.Indicator(
-                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                height = 3.dp,
-                color = AppGreen
-            )
-        }
-    ) {
-        listOf("Thông báo", "Tin tức").forEachIndexed { index, title ->
-            Tab(
-                selected = selectedTabIndex == index,
-                onClick = { onTabSelected(index) },
-                text = {
-                    Text(title, color = if (selectedTabIndex == index) AppGreen else Color.Gray, fontWeight = FontWeight.Medium)
+            // Tab TUYẾN / TRẠM DỪNG
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.White,
+                contentColor = Color(0xFF63EE83)
+            ) {
+                tabs.forEachIndexed { index, text ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index }
+                    ) {
+                        Text(
+                            text = text,
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(vertical = 12.dp),
+                            color = if (selectedTab == index) Color(0xFF63EE83) else Color.Gray
+                        )
+                    }
                 }
-            )
-        }
-    }
-}
+            }
 
-// --- SEARCH BAR ---
-@Composable
-fun SearchBar(modifier: Modifier = Modifier) {
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        placeholder = { Text("Tìm kiếm tin tức") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = "Tìm kiếm") },
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent,
-            focusedContainerColor = LightGrayBackground,
-            unfocusedContainerColor = LightGrayBackground
-        ),
-        singleLine = true
-    )
-}
-
-// --- NEWS CONTENT ---
-@Composable
-fun NewsContent() {
-    val newsItems = listOf(
-        NewsItem("Thông báo kết thúc hoạt động đưa đón công chức, viên chức và đưa vào hoạt động hai tuyến xe buýt mới", "01/11/2025"),
-        NewsItem("Công bố giá vé 2 tuyến xe buýt kết nối TP HCM với khu vực Bình Dương và Bà Rịa - Vũng Tàu", "31/10/2025", isMainItem = false),
-        NewsItem("CÔNG BỐ KẾT QUẢ MINIGAME “Trọn vẹn hành trình - Góp ý hay, nhận quà liền tay”", "29/10/2025"),
-        NewsItem("CÔNG BỐ KẾT QUẢ MINIGAME “Trọn vẹn hành trình - Góp ý hay, nhận quà liền tay”", "29/10/2025"),
-        NewsItem("CÔNG BỐ KẾT QUẢ MINIGAME “Trọn vẹn hành trình - Góp ý hay, nhận quà liền tay”", "29/10/2025"),
-        NewsItem("CÔNG BỐ KẾT QUẢ MINIGAME “Trọn vẹn hành trình - Góp ý hay, nhận quà liền tay”", "29/10/2025")
-
-
-    )
-
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        val pairedItems = newsItems.chunked(2)
-        items(pairedItems) { pair ->
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                NewsCard(pair[0], modifier = Modifier.weight(1f))
-                if (pair.size > 1) NewsCard(pair[1], modifier = Modifier.weight(1f))
-                else Spacer(modifier = Modifier.weight(1f))
+            // Nội dung tab
+            when (selectedTab) {
+                0 -> NewsList()
+                1 -> NotificationGridList()
             }
         }
     }
 }
 
 @Composable
-fun NewsCard(item: NewsItem, modifier: Modifier = Modifier) {
+fun NewsList() {
+    val items = listOf(
+        "Tuyến buýt 03 đổi lộ trình từ 01/11/2025",
+        "Thêm tuyến Metro số 2 khởi công giai đoạn mới",
+        "Triển khai hệ thống vé điện tử toàn thành phố"
+    )
+
+    LazyColumn(modifier = Modifier.padding(16.dp)) {
+        items(items) { title ->
+            NewsCard(title)
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+fun NotificationGridList() {
+    val notifications = listOf(
+        NotificationItem("Thay đổi lộ trình tuyến số 03", R.drawable.bus1),
+        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus2),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
+        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus4)
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(notifications) { item ->
+            NotificationGridCard(item)
+        }
+    }
+}
+
+@Composable
+fun NewsCard(text: String) {
     Card(
-        modifier = modifier.height(IntrinsicSize.Min),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column {
-            Box(modifier = Modifier.fillMaxWidth().height(130.dp).background(LightGrayBackground)) {}
-            Text(item.title, modifier = Modifier.padding(8.dp), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 4, overflow = TextOverflow.Ellipsis)
-            Text(item.date, color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-        }
-    }
-}
-
-// --- NOTIFICATION CONTENT ---
-@Composable
-fun NotificationContent() {
-    val notifications = listOf(
-        NotificationItem("Thông báo kết thúc hoạt động đưa đón công chức...", "Hôm nay", isHot = true, type = "Tin nóng"),
-        NotificationItem("Công bố giá vé 2 tuyến xe buýt kết nối TP HCM...", "Hôm qua", type = "Thông báo")
-    )
-
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        items(notifications) { item ->
-            NotificationItemRow(item = item)
-            Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 0.5.dp)
-        }
+        Text(text = text, modifier = Modifier.padding(16.dp), fontSize = 15.sp)
     }
 }
 
 @Composable
-fun NotificationItemRow(item: NotificationItem) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable {}.padding(vertical = 12.dp),
-        verticalAlignment = Alignment.Top
+fun NotificationGridCard(item: NotificationItem) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
     ) {
-        Icon(Icons.Filled.Notifications, contentDescription = "Thông báo", tint = if (item.isHot) Color.Red else Color.Blue, modifier = Modifier.padding(end = 12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(item.type, fontWeight = FontWeight.Bold, color = if (item.isHot) Color.Red else Color.DarkGray, fontSize = 14.sp)
-                Text(item.date, color = Color.Gray, fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(item.title, color = Color.Black, fontSize = 14.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Column {
+            Image(
+                painter = painterResource(id = item.image),
+                contentDescription = item.title,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+            )
+            Text(
+                text = item.title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+                modifier = Modifier.padding(8.dp)
+            )
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewMainScreen() {
-    NewsScreen()
 }

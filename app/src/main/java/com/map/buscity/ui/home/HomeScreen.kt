@@ -102,7 +102,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 )
                 NavigationBarItem(
                     selected = selectedTabIndex == 2,
-                    onClick = { selectedTabIndex = 2 },
+                    onClick = { selectedTabIndex = 2
+                        navController.navigate("favorite")
+                              },
+
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "Yêu thích") },
                     label = { Text("Yêu thích", fontSize = 11.sp) }
                 )

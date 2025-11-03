@@ -23,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.map.buscity.ui.news.NewsScreen
+import com.map.buscity.ui.favorite.FavoriteScreen
+
 
 
 
@@ -63,8 +65,10 @@ class MainActivity : ComponentActivity() {
                                 HomeScreen(navController = navController)
                             }
                             composable("news") {
-                                NewsScreen()
+                                NewsScreen(navController)
                             }
+                            composable("favorite") {
+                                FavoriteScreen(navController) }
                             composable("account") {
                                 AccountHomeScreen(userName = "Người dùng", avatarUrl = null)
                             }
