@@ -177,13 +177,13 @@ fun NewsList() {
 fun NotificationGridList() {
     val notifications = listOf(
         NotificationItem("Thay đổi lộ trình tuyến số 03", R.drawable.bus1),
-        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus2),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus3),
-        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus4)
+        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus1),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
+        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus1)
     )
 
     LazyVerticalGrid(
