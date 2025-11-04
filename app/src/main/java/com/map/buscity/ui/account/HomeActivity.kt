@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.map.buscity.R
+import androidx.navigation.NavController
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,15 +36,27 @@ class HomeActivity : ComponentActivity() {
         val avatarUrl = intent.getStringExtra("avatarUrl")
 
         setContent {
-            HomeScreen(userName = userName, avatarUrl = avatarUrl)
+            // Activity này có thể được dùng độc lập; không có NavHost để điều hướng.
+            // Truyền null để chỉ hiển thị giao diện Tài khoản, không điều hướng tab.
+            HomeScreen(navController = null, userName = userName, avatarUrl = avatarUrl)
         }
     }
 }
 
 @Composable
-fun HomeScreen(userName: String, avatarUrl: String?) {
+fun HomeScreen(navController: NavController?, userName: String, avatarUrl: String?) {
+    var selectedTabIndex by remember { mutableStateOf(3) } // Tài khoản là tab thứ 4
+
     Scaffold(
-        bottomBar = { BottomNavigationBar() }
+        bottomBar = { BottomNavigationBar(selectedTabIndex = selectedTabIndex, onTabSelected = { index ->
+            selectedTabIndex = index
+            when (index) {
+                0 -> navController?.navigate("home")
+                1 -> navController?.navigate("news")
+                2 -> navController?.navigate("favorite")
+                3 -> { /* đang ở tài khoản */ }
+            }
+        }) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -163,32 +176,32 @@ fun InfoCard(icon: androidx.compose.ui.graphics.vector.ImageVector, title: Strin
 }
 
 @Composable
-fun BottomNavigationBar() {
+fun BottomNavigationBar(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp
     ) {
         NavigationBarItem(
-            selected = false,
-            onClick = {},
+            selected = selectedTabIndex == 0,
+            onClick = { onTabSelected(0) },
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
             label = { Text("Trang chủ") }
         )
         NavigationBarItem(
-            selected = false,
-            onClick = {},
+            selected = selectedTabIndex == 1,
+            onClick = { onTabSelected(1) },
             icon = { Icon(Icons.Default.Notifications, contentDescription = null) },
             label = { Text("Thông báo") }
         )
         NavigationBarItem(
-            selected = false,
-            onClick = {},
+            selected = selectedTabIndex == 2,
+            onClick = { onTabSelected(2) },
             icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) },
             label = { Text("Yêu thích") }
         )
         NavigationBarItem(
-            selected = true,
-            onClick = {},
+            selected = selectedTabIndex == 3,
+            onClick = { onTabSelected(3) },
             icon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF4CAF50)) },
             label = { Text("Tài khoản", color = Color(0xFF4CAF50)) }
         )

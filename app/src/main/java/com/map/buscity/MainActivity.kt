@@ -70,7 +70,7 @@ class MainActivity : ComponentActivity() {
                             composable("favorite") {
                                 FavoriteScreen(navController) }
                             composable("account") {
-                                AccountHomeScreen(userName = "Người dùng", avatarUrl = null)
+                                AccountHomeScreen(navController = navController, userName = "Người dùng", avatarUrl = null)
                             }
                         }
                     }
