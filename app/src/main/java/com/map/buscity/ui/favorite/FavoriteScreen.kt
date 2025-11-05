@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.navigation.NavController
 import com.map.buscity.R
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,18 +72,18 @@ fun FavoriteScreen(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(70.dp)
             ) {
                 // Background xanh
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF63EE83))
+                        .align(Alignment.TopStart)
                 )
 
                 // back1.png phủ toàn bộ header
                 Image(
-                    painter = painterResource(id = R.drawable.back1),
+                    painter = painterResource(id = R.drawable.backgroundgreen),
                     contentDescription = "Back Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -107,10 +108,17 @@ fun FavoriteScreen(navController: NavController) {
             }
 
             // Tab TUYẾN / TRẠM DỪNG
+            // TabRow với indicator màu xanh lá
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
-                contentColor = Color(0xFF63EE83)
+                contentColor = Color(0xFF63EE83),
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = Color(0xFF63EE83) // màu xanh lá
+                    )
+                }
             ) {
                 tabs.forEachIndexed { index, text ->
                     Tab(
@@ -126,6 +134,7 @@ fun FavoriteScreen(navController: NavController) {
                     }
                 }
             }
+
 
             // Nội dung tab
             when (selectedTab) {

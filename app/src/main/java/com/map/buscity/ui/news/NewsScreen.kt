@@ -15,24 +15,31 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.map.buscity.R
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.text.style.TextOverflow
 
-data class NotificationItem(val title: String, val image: Int)
+
+
+data class NotificationItem(val title: String, val image: Int, val date: String, val icon: Int )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(navController: NavController) {
     var selectedTabIndex by remember { mutableStateOf(1) }   // bottom nav
     var selectedTab by remember { mutableStateOf(0) }         // tabs: tin tức / thông báo
-    val tabs = listOf("Tin tức", "Thông báo")
+    val tabs = listOf("Thông báo", "Tin tức")
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -87,51 +94,53 @@ fun NewsScreen(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .height(70.dp)
             ) {
                 // Background xanh
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFF63EE83))
+
                 )
 
-                // Hình back1.png phủ header
+                // Hình backgroundgreen.png phủ header
                 Image(
-                    painter = painterResource(id = R.drawable.back1),
+                    painter = painterResource(id = R.drawable.backgroundgreen),
                     contentDescription = "Back Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
                 )
 
-                // Shadow text: text màu đen, offset nhẹ
-                Text(
-                    text = "Tin tức và Thông báo",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black.copy(alpha = 0.5f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(x = 2.dp, y = 2.dp)
-                )
-
                 // Main text màu trắng
                 Text(
-                    text = "Tin tức và Thông báo",
+                    text = "Thông báo và Tin tức",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center)
+                    modifier = Modifier.align(Alignment.Center),
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    )
                 )
             }
 
             // Tab TUYẾN / TRẠM DỪNG
+            // TabRow với indicator màu xanh lá
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.White,
-                contentColor = Color(0xFF63EE83)
+                contentColor = Color(0xFF63EE83),
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = Color(0xFF63EE83) // màu xanh lá
+                    )
+                }
             ) {
                 tabs.forEachIndexed { index, text ->
                     Tab(
@@ -148,6 +157,7 @@ fun NewsScreen(navController: NavController) {
                 }
             }
 
+
             // Nội dung tab
             when (selectedTab) {
                 0 -> NewsList()
@@ -160,39 +170,80 @@ fun NewsScreen(navController: NavController) {
 @Composable
 fun NewsList() {
     val items = listOf(
-        "Tuyến buýt 03 đổi lộ trình từ 01/11/2025",
-        "Thêm tuyến Metro số 2 khởi công giai đoạn mới",
-        "Triển khai hệ thống vé điện tử toàn thành phố"
+        Triple("Tuyến buýt 03 đổi lộ trình từ 01/11/2025", "01/11/2025", R.drawable.ic_notification),
+        Triple("Thêm tuyến Metro số 2 khởi công giai đoạn mới", "02/11/2025", R.drawable.ic_notification),
+        Triple("Triển khai hệ thống vé điện tử toàn thành phố", "03/11/2025", R.drawable.ic_notification)
     )
 
-    LazyColumn(modifier = Modifier.padding(16.dp)) {
-        items(items) { title ->
-            NewsCard(title)
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(items) { (title, date, icon) ->
+            NewsCardWithIcon(title, date, icon)
             Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
 
 @Composable
+fun NewsCardWithIcon(title: String, date: String, icon: Int) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Tiêu đề
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Icon + ngày tháng
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(id = icon),
+                    contentDescription = "Notification Icon",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = date,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
 fun NotificationGridList() {
     val notifications = listOf(
-        NotificationItem("Thay đổi lộ trình tuyến số 03", R.drawable.bus1),
-        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus1),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1),
-        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus1)
+        NotificationItem("Thay đổi lộ trình tuyến số 03", R.drawable.bus1, "05/11/2025", R.drawable.ic_notification),
+        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus1, "04/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
+        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus1, "02/11/2025", R.drawable.ic_notification)
     )
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        columns = GridCells.Fixed(2), // 2 cột
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp), // khoảng cách giữa các hàng
+        horizontalArrangement = Arrangement.spacedBy(8.dp) // khoảng cách giữa các cột
     ) {
         items(notifications) { item ->
             NotificationGridCard(item)
@@ -215,29 +266,59 @@ fun NewsCard(text: String) {
 @Composable
 fun NotificationGridCard(item: NotificationItem) {
     Card(
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(200.dp), // chiều cao cố định
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
-        Column {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Hình ảnh trên
             Image(
                 painter = painterResource(id = item.image),
                 contentDescription = item.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
+                    .weight(1f) // chiếm 1 phần chiều cao
             )
+
+            // Tiêu đề
             Text(
                 text = item.title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.Black,
-                modifier = Modifier.padding(8.dp)
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Icon + ngày tháng
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            ) {
+                Image(
+                    painter = painterResource(id = item.icon),
+                    contentDescription = "Icon",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = item.date,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
         }
     }
 }

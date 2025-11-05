@@ -153,7 +153,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     .background(Color.White.copy(alpha = 0.12f))
                     .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
-                    Text(text = "Đa phương tiện - Trọn vẹn hành trình", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(text = "Đa phương tiện - Trọn vẹn hành trình", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
 
@@ -230,13 +230,23 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(12.dp))
 
             // Button to open full map
-            Box(modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()) {
-                androidx.compose.material3.Button(onClick = { navController.navigate("map") }, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "Xem bản đồ")
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+            ) {
+                androidx.compose.material3.Button(
+                    onClick = { navController.navigate("map") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50)
+                    )
+                ) {
+                    Text(text = "Xem bản đồ", color = Color.White,
+                    fontSize = 18.sp)
                 }
             }
+
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -288,8 +298,11 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     Image(
                         painter = painterResource(id = R.drawable.buscenter1),
                         contentDescription = "map preview",
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF63EE83)),
                         contentScale = ContentScale.Crop
+
                     )
                 }
             }
