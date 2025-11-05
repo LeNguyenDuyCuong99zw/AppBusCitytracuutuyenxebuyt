@@ -14,6 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import com.map.buscity.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -45,40 +53,78 @@ fun BusRouteScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Chọn tuyến xe") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xFF2ECC71)
+            ) {
+                TopAppBar(
+                    title = { Text("Chọn tuyến xe", color = Color.White) },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color(0xFFF5F5F5)  // Màu nền xám nhạt cho toàn bộ màn hình
         ) {
-            // Search bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                placeholder = { Text("Tìm nhanh") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search"
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // Search bar with shadow
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    shadowElevation = 4.dp,
+                    color = Color.White
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        placeholder = { 
+                            Text(
+                                "Tìm nhanh",
+                                color = Color.Gray.copy(alpha = 0.6f)
+                            ) 
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color.Gray.copy(alpha = 0.6f)
+                            )
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedBorderColor = Color.Transparent
+                        )
                     )
-                },
-                singleLine = true
-            )
+                }
 
             // Bus routes list
-            LazyColumn {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
                 items(
                     routes.filter {
                         searchQuery.isEmpty() ||
@@ -87,11 +133,16 @@ fun BusRouteScreen(
                     }
                 ) { route ->
                     // make each item clickable to open detail
-                    Box(modifier = Modifier.fillMaxWidth().clickable { onRouteClick(route.id) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onRouteClick(route.id) }
+                    ) {
                         BusRouteItem(route)
                     }
                 }
             }
+        }
         }
     }
 }
@@ -101,74 +152,96 @@ fun BusRouteScreen(
 fun BusRouteItem(route: BusRoute) {
     var isFavorite by remember { mutableStateOf(false) }
     
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
     ) {
         Row(
             modifier = Modifier
-                .padding(16.dp)
+                .padding(12.dp)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left side - Route info
+            // Left: logo in green circle
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF2ECC71)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.logo_tuyen),
+                    contentDescription = "Bus logo",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Middle: route info
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Tuyến xe ${route.routeNumber}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
+                Text(
+                    text = "Tuyến xe ${route.routeNumber}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontSize = 16.sp
+                )
+
                 Text(
                     text = route.routeName,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Icon(
                         painter = painterResource(android.R.drawable.ic_menu_recent_history),
                         contentDescription = "Time",
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
                         text = "${route.startTime} - ${route.endTime}",
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 4.dp)
+                        modifier = Modifier.padding(start = 6.dp),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     Text(
                         text = "${route.price} VND",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(start = 6.dp)
                     )
                 }
             }
-            
-            // Right side - Rating and favorite
+
+            // Right: rating and favorite
             Column(
-                horizontalAlignment = Alignment.End
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "${route.rating}★",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "${route.rating}",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
                 IconButton(onClick = { isFavorite = !isFavorite }) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
             }
