@@ -3,6 +3,7 @@ package com.map.buscity.ui.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -102,10 +103,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 )
                 NavigationBarItem(
                     selected = selectedTabIndex == 2,
-                    onClick = { selectedTabIndex = 2
+                    onClick = { 
+                        selectedTabIndex = 2
                         navController.navigate("favorite")
-                              },
-
+                    },
                     icon = { Icon(Icons.Filled.Favorite, contentDescription = "Yêu thích") },
                     label = { Text("Yêu thích", fontSize = 11.sp) }
                 )
@@ -218,9 +219,23 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally)) {
                 // pass the suggested drawable names (you will add these files under res/drawable/)
-                ModeButton(label = "Buýt", gradientColors = listOf(Color(0xFFB8F7C9), Color(0xFF6EDB9A)), iconEmoji = "🚌", iconResName = "mode_bus")
+                ModeButton(label = "Buýt", gradientColors = listOf(Color(0xFFB8F7C9), Color(0xFF6EDB9A)), iconEmoji = "🚌", iconResName = "mode_bus") {
+                    // navigate to routes
+                    navController.navigate("routes")
+                }
                 ModeButton(label = "Metro", gradientColors = listOf(Color(0xFFAEE9F7), Color(0xFF5FD0EE)), iconEmoji = "🚆", iconResName = "mode_metro")
                 ModeButton(label = "Trạm", gradientColors = listOf(Color(0xFFFFE3B2), Color(0xFFFFB66A)), iconEmoji = "🚋", iconResName = "mode_tram")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Button to open full map
+            Box(modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()) {
+                androidx.compose.material3.Button(onClick = { navController.navigate("map") }, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "Xem bản đồ")
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -306,12 +321,14 @@ private fun ModeButton(
     label: String,
     gradientColors: List<Color>,
     iconEmoji: String,
-    iconResName: String? = null
+    iconResName: String? = null,
+    onClick: () -> Unit = {}
 ) {
     // Button close to design: tall rounded rectangle with inner white circle for icon and label inside color area
     Box(
         modifier = Modifier
             .size(width = 114.dp, height = 130.dp)
+            .clickable { onClick() }
             // stronger drop shadow for the card
             .shadow(12.dp, shape = RoundedCornerShape(20.dp))
             // white outline like the mock (subtle; use semi-transparent to avoid pure white pop)
