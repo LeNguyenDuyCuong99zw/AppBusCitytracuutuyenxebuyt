@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    id("kotlin-kapt")
 }
 
 android {
@@ -80,4 +81,22 @@ dependencies {
     // --- Firebase ---
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     implementation("com.google.firebase:firebase-analytics")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.7.5")
+    
+    // ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
+    
+    // Room
+    val room_version = "2.6.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    kapt("androidx.room:room-compiler:$room_version")
+    
+    // MapLibre: add stable, pinned SDK version to avoid breaking changes from newer releases.
+    // Use the official MapLibre Android SDK artifact coordinate (android-sdk).
+    // If you want a newer/stable release, replace the version below (e.g. android-v11/android-v12 tags).
+    implementation("org.maplibre.gl:android-sdk:11.11.0")
 }
