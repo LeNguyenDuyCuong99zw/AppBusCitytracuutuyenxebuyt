@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.map.buscity.ui.register.RegisterActivity
 import com.map.buscity.ui.account.HomeActivity
+import android.widget.Toast
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,7 +120,6 @@ fun LoginScreen() {
                 // Nút đăng nhập
                 Button(
                     onClick = {
-                        // Khi đăng nhập → chuyển sang HomeActivity
                         context.startActivity(Intent(context, HomeActivity::class.java))
                     },
                     modifier = Modifier
@@ -132,6 +132,54 @@ fun LoginScreen() {
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Đường kẻ "hoặc"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                    Text(
+                        "  hoặc  ",
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                    Divider(modifier = Modifier.weight(1f), color = Color.LightGray)
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Nút đăng nhập bằng Google (placeholder)
+                OutlinedButton(
+                    onClick = {
+                        Toast.makeText(context, "Đăng nhập bằng Google chưa được tích hợp", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDB4437))
+                ) {
+                    Text("Đăng nhập bằng Google", fontSize = 16.sp)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Nút đăng nhập bằng Email khác (placeholder)
+                OutlinedButton(
+                    onClick = {
+                        Toast.makeText(context, "Đăng nhập bằng Email khác chưa được tích hợp", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF1976D2))
+                ) {
+                    Text("Đăng nhập bằng Email khác", fontSize = 16.sp)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Chuyển sang đăng ký
                 TextButton(

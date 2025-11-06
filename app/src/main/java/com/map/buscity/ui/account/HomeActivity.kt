@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.map.buscity.R
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import com.map.buscity.ui.login.LoginActivity
 import androidx.navigation.NavController
 
 class HomeActivity : ComponentActivity() {
@@ -46,6 +50,7 @@ class HomeActivity : ComponentActivity() {
 @Composable
 fun HomeScreen(navController: NavController?, userName: String, avatarUrl: String?) {
     var selectedTabIndex by remember { mutableStateOf(3) } // Tài khoản là tab thứ 4
+    val context = LocalContext.current
 
     Scaffold(
         bottomBar = { BottomNavigationBar(selectedTabIndex = selectedTabIndex, onTabSelected = { index ->
@@ -131,17 +136,34 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                 InfoCard(Icons.Default.Storage, "Cập nhật dữ liệu")
                 InfoCard(Icons.Default.Star, "Đánh giá ứng dụng")
                 InfoCard(Icons.Default.Info, "Thông tin công ty")
+                // Đăng xuất
+                InfoCard(
+                    Icons.Default.Logout,
+                    "Đăng xuất",
+                    onClick = {
+                        // TODO: Nếu dùng FirebaseAuth, gọi FirebaseAuth.getInstance().signOut()
+                        val intent = Intent(context, LoginActivity::class.java).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                        }
+                        context.startActivity(intent)
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-fun InfoCard(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String) {
+fun InfoCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    onClick: (() -> Unit)? = null
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp),
+            .padding(vertical = 6.dp)
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
