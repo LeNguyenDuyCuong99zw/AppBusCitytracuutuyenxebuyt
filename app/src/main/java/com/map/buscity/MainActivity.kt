@@ -75,11 +75,16 @@ class MainActivity : ComponentActivity() {
                                 // show list of bus routes
                                 com.map.buscity.ui.routes.BusRouteScreen(
                                     onBackClick = { navController.navigateUp() },
-                                    onRouteClick = { id -> navController.navigate("route/$id") }
+                                    // navigate to map and show stops for the given route number
+                                    onRouteClick = { routeNumber -> navController.navigate("map/route/$routeNumber") }
                                 )
                             }
                             composable("map") {
                                 com.map.buscity.ui.map.MapScreen()
+                            }
+                            composable("map/route/{routeNumber}") { backStackEntry ->
+                                val routeNumber = backStackEntry.arguments?.getString("routeNumber")
+                                com.map.buscity.ui.map.MapScreen(routeNumber = routeNumber)
                             }
                             composable("route/{routeId}") { backStackEntry ->
                                 // parse the routeId from arguments as a string and convert to Int

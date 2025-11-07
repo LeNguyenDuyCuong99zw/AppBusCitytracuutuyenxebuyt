@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.map.buscity.data.BusDatabase
 import com.map.buscity.data.BusRoute
+import com.map.buscity.data.BusStop
 import com.map.buscity.repository.BusRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
@@ -13,6 +14,8 @@ import kotlinx.coroutines.launch
 class BusViewModel(application: Application) : AndroidViewModel(application) {
     private val db = BusDatabase.getDatabase(application)
     private val repo = BusRepository(db.busRouteDao())
+
+    private val stopDao = db.busStopDao()
 
     val routes = repo.getAllRoutes()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -106,6 +109,13 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
             sampleRoutes.forEach { route ->
                 repo.insertIfNotExists(route)
             }
+
+            // Insert sample stops for all routes if none exist
+            val totalStops = stopDao.countForRoute("01")
+            if (totalStops == 0) {
+                val sampleStops = com.map.buscity.data.sample.SampleBusStopData.getSampleStops()
+                stopDao.insertStops(sampleStops)
+            }
         }
     }
 
@@ -116,4 +126,6 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getRouteById(id: Int) = repo.getRouteById(id)
+
+    fun getStopsForRoute(routeNumber: String) = stopDao.getStopsForRoute(routeNumber)
 }

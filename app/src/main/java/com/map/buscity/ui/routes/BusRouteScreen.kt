@@ -36,7 +36,7 @@ import com.map.buscity.viewmodel.BusViewModelFactory
 @Composable
 fun BusRouteScreen(
     onBackClick: () -> Unit,
-    onRouteClick: (Int) -> Unit,
+    onRouteClick: (String) -> Unit,
     viewModel: BusViewModel = viewModel(
         factory = BusViewModelFactory(LocalContext.current.applicationContext as Application)
     )
@@ -99,16 +99,16 @@ fun BusRouteScreen(
                         modifier = Modifier
                             .fillMaxWidth(),
                         placeholder = { 
-                            Text(
-                                "Tìm nhanh",
-                                color = Color.Gray.copy(alpha = 0.6f)
-                            ) 
+                        Text(
+                            "Tìm nhanh",
+                            color = Color.Black
+                        ) 
                         },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Search",
-                                tint = Color.Gray.copy(alpha = 0.6f)
+                                tint = Color.Black
                             )
                         },
                         singleLine = true,
@@ -136,7 +136,7 @@ fun BusRouteScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onRouteClick(route.id) }
+                            .clickable { onRouteClick(route.routeNumber) }
                     ) {
                         BusRouteItem(route)
                     }
@@ -169,7 +169,7 @@ fun BusRouteItem(route: BusRoute) {
             // Left: logo in green circle
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(32.dp)  // Giảm kích thước box chứa xuống 32dp
                     .clip(CircleShape)
                     .background(Color(0xFF2ECC71)),
                 contentAlignment = Alignment.Center
@@ -177,7 +177,7 @@ fun BusRouteItem(route: BusRoute) {
                 Image(
                     painter = painterResource(id = R.drawable.logo_tuyen),
                     contentDescription = "Bus logo",
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(20.dp)  // Giảm kích thước logo xuống 20dp
                 )
             }
 
@@ -187,16 +187,20 @@ fun BusRouteItem(route: BusRoute) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Tuyến xe ${route.routeNumber}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontSize = 16.sp
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    ),
+                    fontSize = 16.sp,
+                    color = Color.Black
                 )
 
                 Text(
                     text = route.routeName,
                     style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 4.dp),
+                    color = Color.Black
                 )
 
                 Row(
@@ -204,44 +208,69 @@ fun BusRouteItem(route: BusRoute) {
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
                     Icon(
-                        painter = painterResource(android.R.drawable.ic_menu_recent_history),
+                        painter = painterResource(R.drawable.ic_clock),
                         contentDescription = "Time",
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        tint = Color.Black
                     )
                     Text(
                         text = "${route.startTime} - ${route.endTime}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 6.dp),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                        ),
+                        modifier = Modifier.padding(start = 4.dp),
+                        color = Color.Black
                     )
 
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(16.dp))
 
+                    Icon(
+                        painter = painterResource(R.drawable.ic_price),
+                        contentDescription = "Price",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFF2196F3)
+                    )
                     Text(
                         text = "${route.price} VND",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 6.dp)
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Normal
+                        ),
+                        color = Color(0xFF2196F3),
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
             }
 
             // Right: rating and favorite
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.padding(start = 8.dp)
             ) {
-                Text(
-                    text = "${route.rating}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                IconButton(onClick = { isFavorite = !isFavorite }) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                ) {
+                    Text(
+                        text = "${route.rating}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF2ECC71)
+                    )
+                    Icon(
+                        painter = painterResource(R.drawable.ic_star),
+                        contentDescription = "Rating",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color(0xFF2ECC71)
+                    )
+                }
+                IconButton(
+                    onClick = { isFavorite = !isFavorite },
+                    modifier = Modifier.size(24.dp)
+                ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        tint = if (isFavorite) Color(0xFF2ECC71) else Color.Black
                     )
                 }
             }
