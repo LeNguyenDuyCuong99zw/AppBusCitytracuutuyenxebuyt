@@ -99,4 +99,8 @@ dependencies {
     // Use the official MapLibre Android SDK artifact coordinate (android-sdk).
     // If you want a newer/stable release, replace the version below (e.g. android-v11/android-v12 tags).
     implementation("org.maplibre.gl:android-sdk:11.11.0")
+    // MapLibre plugins for annotations
+    implementation("org.maplibre.gl:android-plugin-annotation-v9:2.0.2")
+    // OkHttp for networking used to call OSRM routing service
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
 }

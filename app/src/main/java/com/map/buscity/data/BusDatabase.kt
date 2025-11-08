@@ -5,9 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [BusRoute::class], version = 1, exportSchema = false)
+@Database(entities = [BusRoute::class, BusStop::class, RouteCache::class], version = 3, exportSchema = false)
 abstract class BusDatabase : RoomDatabase() {
     abstract fun busRouteDao(): BusRouteDao
+    abstract fun busStopDao(): BusStopDao
+    abstract fun routeCacheDao(): RouteCacheDao
 
     companion object {
         @Volatile
@@ -19,7 +21,10 @@ abstract class BusDatabase : RoomDatabase() {
                     context.applicationContext,
                     BusDatabase::class.java,
                     "bus_database"
-                ).build()
+                )
+                    // For development: do destructive migration to avoid migration scripts
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
