@@ -26,18 +26,28 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.map.buscity.R
+import kotlinx.coroutines.launch
+import com.map.buscity.ui.account.AccountPreferences
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
     val user = remember { FirebaseAuth.getInstance().currentUser }
+    val scope = rememberCoroutineScope()
 
-    var displayName by remember { mutableStateOf(user?.displayName ?: "") }
+    // DataStore flows
+    val nameDs by AccountPreferences.profileName(context).collectAsState(initial = "")
+    val phoneDs by AccountPreferences.profilePhone(context).collectAsState(initial = "")
+    val genderDs by AccountPreferences.profileGender(context).collectAsState(initial = "")
+    val birthdayDs by AccountPreferences.profileBirthday(context).collectAsState(initial = "")
+
+    var displayName by remember(nameDs) { mutableStateOf(if (nameDs.isNotBlank()) nameDs else (user?.displayName ?: "")) }
     val email = user?.email ?: ""
-    var phone by remember { mutableStateOf("") } // Placeholder without backend
-    var gender by remember { mutableStateOf("") } // Placeholder
-    var birthday by remember { mutableStateOf("") } // Placeholder
+    var phone by remember(phoneDs) { mutableStateOf(phoneDs) }
+    var gender by remember(genderDs) { mutableStateOf(genderDs.ifBlank { "male" }) }
+    var birthday by remember(birthdayDs) { mutableStateOf(birthdayDs) }
+    var phoneError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -113,19 +123,27 @@ fun ProfileScreen(navController: NavController) {
 
             OutlinedTextField(
                 value = phone,
-                onValueChange = { phone = it },
+                onValueChange = {
+                    if (it.length <= 10 && it.all { ch -> ch.isDigit() }) phone = it
+                },
+                isError = phoneError != null,
+                supportingText = { phoneError?.let { Text(it, color = Color.Red) } },
                 label = { Text("Số điện thoại") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = gender,
-                onValueChange = { gender = it },
-                label = { Text("Giới tính") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Text("Giới tính", fontSize = 14.sp, color = Color.Gray)
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = gender == "male", onClick = { gender = "male" })
+                    Text("Nam")
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = gender == "female", onClick = { gender = "female" })
+                    Text("Nữ")
+                }
+            }
 
             OutlinedTextField(
                 value = birthday,
@@ -137,20 +155,29 @@ fun ProfileScreen(navController: NavController) {
 
             Button(
                 onClick = {
+                    phoneError = when {
+                        phone.length != 10 -> "Số điện thoại phải đủ 10 chữ số"
+                        !phone.startsWith("0") -> "Số điện thoại phải bắt đầu bằng số 0"
+                        else -> null
+                    }
+                    if (phoneError != null) return@Button
+
                     val current = FirebaseAuth.getInstance().currentUser
                     if (current != null) {
                         val updates = UserProfileChangeRequest.Builder()
                             .setDisplayName(displayName.ifBlank { null })
                             .build()
                         current.updateProfile(updates)
-                            .addOnSuccessListener {
-                                Toast.makeText(context, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show()
-                            }
-                            .addOnFailureListener {
-                                Toast.makeText(context, "Lưu thất bại", Toast.LENGTH_SHORT).show()
-                            }
-                    } else {
-                        Toast.makeText(context, "Chưa đăng nhập", Toast.LENGTH_SHORT).show()
+                    }
+                    scope.launch {
+                        AccountPreferences.saveProfile(
+                            context,
+                            name = displayName,
+                            phone = phone,
+                            gender = gender,
+                            birthday = birthday
+                        )
+                        Toast.makeText(context, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show()
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),

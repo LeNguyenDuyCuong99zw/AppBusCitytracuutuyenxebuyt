@@ -25,6 +25,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Login & Register screens -->
+        <activity
+            android:name=".ui.login.LoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BusCity" />
+        <activity
+            android:name=".ui.register.RegisterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BusCity" />
+
+        <!-- Optional: secondary host that also contains account routes -->
+        <activity
+            android:name=".ui.account.HomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.BusCity" />
     </application>
 
 </manifest>

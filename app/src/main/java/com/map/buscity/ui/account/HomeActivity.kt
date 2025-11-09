@@ -87,6 +87,7 @@ fun AccountScreen(navController: NavController) {
     }
 
     val displayName = user?.displayName ?: user?.email ?: "Khách"
+    var signingOut by remember { mutableStateOf(false) }
     val avatarUrl = user?.photoUrl?.toString()
 
     Scaffold(
@@ -248,7 +249,7 @@ fun AccountScreen(navController: NavController) {
 
                     Button(
                         onClick = {
-                            if (user == null) {
+                            if (user == null && !signingOut) {
                                 context.startActivity(Intent(context, LoginActivity::class.java))
                             }
                         },
@@ -257,6 +258,10 @@ fun AccountScreen(navController: NavController) {
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
                     ) {
+                        if (signingOut) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF4CAF50), strokeWidth = 2.dp)
+                            Spacer(Modifier.width(8.dp))
+                        }
                         Text(
                             text = if (user == null) "Đăng nhập" else displayName,
                             color = Color(0xFF4CAF50),
@@ -296,20 +301,22 @@ fun AccountScreen(navController: NavController) {
                         icon = Icons.Default.ExitToApp,
                         title = "Đăng xuất",
                         onClick = {
-                            signOutUser(
-                                context,
-                                onSuccess = {
-                                    Toast.makeText(context, "Đã đăng xuất", Toast.LENGTH_SHORT).show()
-                                    // reload account screen
-                                    selectedTabIndex = 3
-                                    navController.navigate("account") {
-                                        launchSingleTop = true
+                            if (!signingOut) {
+                                signingOut = true
+                                signOutUser(
+                                    context,
+                                    onSuccess = {
+                                        signingOut = false
+                                        Toast.makeText(context, "Đã đăng xuất", Toast.LENGTH_SHORT).show()
+                                        selectedTabIndex = 3
+                                        navController.navigate("account") { launchSingleTop = true }
+                                    },
+                                    onError = {
+                                        signingOut = false
+                                        Toast.makeText(context, "Lỗi đăng xuất", Toast.LENGTH_SHORT).show()
                                     }
-                                },
-                                onError = {
-                                    Toast.makeText(context, "Lỗi đăng xuất", Toast.LENGTH_SHORT).show()
-                                }
-                            )
+                                )
+                            }
                         }
                     )
                 }

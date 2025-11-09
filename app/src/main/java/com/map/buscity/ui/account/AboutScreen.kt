@@ -1,12 +1,10 @@
 package com.map.buscity.ui.account
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -15,6 +13,9 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(navController: NavController) {
+    var showPrivacy by remember { mutableStateOf(false) }
+    var showTerms by remember { mutableStateOf(false) }
+    var showSupport by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -49,22 +50,20 @@ fun AboutScreen(navController: NavController) {
             Divider()
             Text("Liên kết:")
 
-            TextButton(onClick = {
-                navController.context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://buscity.example/privacy"))
-                )
-            }) { Text("Chính sách bảo mật") }
+            TextButton(onClick = { showPrivacy = !showPrivacy }) { Text("Chính sách bảo mật") }
+            if (showPrivacy) {
+                Text("Nội dung chính sách bảo mật: Chúng tôi tôn trọng quyền riêng tư của bạn và chỉ thu thập dữ liệu cần thiết.", modifier = Modifier.padding(start = 8.dp))
+            }
 
-            TextButton(onClick = {
-                navController.context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("https://buscity.example/terms"))
-                )
-            }) { Text("Điều khoản sử dụng") }
+            TextButton(onClick = { showTerms = !showTerms }) { Text("Điều khoản sử dụng") }
+            if (showTerms) {
+                Text("Điều khoản: Vui lòng sử dụng ứng dụng đúng mục đích, không can thiệp trái phép.", modifier = Modifier.padding(start = 8.dp))
+            }
 
-            TextButton(onClick = {
-                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:support@buscity.example"))
-                navController.context.startActivity(intent)
-            }) { Text("Liên hệ hỗ trợ") }
+            TextButton(onClick = { showSupport = !showSupport }) { Text("Liên hệ hỗ trợ") }
+            if (showSupport) {
+                Text("Email: support@buscity.example | SĐT: 0123 456 789", modifier = Modifier.padding(start = 8.dp))
+            }
         }
     }
 }

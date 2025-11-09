@@ -14,6 +14,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.map.buscity.ui.theme.BusCityTheme
 import com.map.buscity.ui.splash.SplashScreen
 import com.map.buscity.ui.home.HomeScreen
@@ -40,6 +41,26 @@ class MainActivity : ComponentActivity() {
             BusCityTheme {
                 val navController = rememberNavController()
                 var showSplash by remember { mutableStateOf(true) }
+
+                // Observe DataStore for theme & language
+                val context = LocalContext.current
+                val darkPref by com.map.buscity.ui.account.AccountPreferences.darkTheme(context).collectAsState(initial = false)
+                val langPref by com.map.buscity.ui.account.AccountPreferences.language(context).collectAsState(initial = "vi")
+
+                // Provide translations map (simple key->string). In real app use resources or i18n library.
+                val strings = remember(langPref) {
+                    if (langPref == "en") mapOf(
+                        "home" to "Home",
+                        "news" to "News",
+                        "favorite" to "Favorite",
+                        "account" to "Account"
+                    ) else mapOf(
+                        "home" to "Trang chủ",
+                        "news" to "Thông báo",
+                        "favorite" to "Yêu thích",
+                        "account" to "Tài khoản"
+                    )
+                }
                 LaunchedEffect(Unit) {
                     delay(5000L)
                     showSplash = false
@@ -61,6 +82,7 @@ class MainActivity : ComponentActivity() {
                         enter = fadeIn(animationSpec = tween(350)) +
                                 slideInVertically(initialOffsetY = { it / 4 }, animationSpec = tween(350))
                     ) {
+                        com.map.buscity.ui.theme.BusCityTheme(darkTheme = darkPref) {
                         NavHost(navController = navController, startDestination = "home") {
                             composable("home") {
                                 HomeScreen(navController = navController)
@@ -92,9 +114,14 @@ class MainActivity : ComponentActivity() {
                                 val id = idStr.toIntOrNull() ?: 0
                                 com.map.buscity.ui.routes.BusRouteDetailScreen(routeId = id, onBack = { navController.navigateUp() })
                             }
-                            composable("account") {
-                                AccountScreen(navController = navController)
-                            }
+                            // Account root and sub-routes (replicated here so navigating from main host works)
+                            composable("account") { AccountScreen(navController = navController) }
+                            composable("account/profile") { com.map.buscity.ui.account.ProfileScreen(navController) }
+                            composable("account/settings") { com.map.buscity.ui.account.SettingsScreen(navController) }
+                            composable("account/datasync") { com.map.buscity.ui.account.DataSyncScreen(navController) }
+                            composable("account/rate") { com.map.buscity.ui.account.RateAppScreen(navController) }
+                            composable("account/about") { com.map.buscity.ui.account.AboutScreen(navController) }
+                        }
                         }
                     }
                 }

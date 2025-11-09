@@ -8,7 +8,8 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Delete
+import kotlinx.coroutines.launch
+import com.map.buscity.ui.account.AccountPreferences
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -20,9 +21,16 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(navController: NavController) {
-    var darkTheme by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var language by remember { mutableStateOf("Tiếng Việt") }
+    val context = navController.context
+    val scope = rememberCoroutineScope()
+    val darkFlow by AccountPreferences.darkTheme(context).collectAsState(initial = false)
+    val notiFlow by AccountPreferences.notifications(context).collectAsState(initial = true)
+    val langFlow by AccountPreferences.language(context).collectAsState(initial = "vi")
+
+    var darkTheme by remember(darkFlow) { mutableStateOf(darkFlow) }
+    var notificationsEnabled by remember(notiFlow) { mutableStateOf(notiFlow) }
+    var language by remember(langFlow) { mutableStateOf(if (langFlow == "en") "English" else "Tiếng Việt") }
+    var tempReset by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -43,9 +51,10 @@ fun SettingsScreen(navController: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val darkLabel = if (darkTheme) "Chế độ sáng" else "Chế độ tối"
             SettingRow(
                 icon = Icons.Default.DarkMode,
-                title = "Chế độ tối",
+                title = darkLabel,
                 trailing = {
                     Switch(checked = darkTheme, onCheckedChange = { darkTheme = it })
                 }
@@ -70,23 +79,24 @@ fun SettingsScreen(navController: NavController) {
             Divider()
 
             SettingRow(
-                icon = Icons.Default.Delete,
-                title = "Xoá cache",
-                onClick = { Toast.makeText(navController.context, "Đã xoá cache (demo)", Toast.LENGTH_SHORT).show() }
-            )
-            SettingRow(
-                icon = Icons.Default.Delete,
+                icon = Icons.Default.DarkMode,
                 title = "Đặt lại mặc định",
                 onClick = {
-                    darkTheme = false; notificationsEnabled = true; language = "Tiếng Việt"
-                    Toast.makeText(navController.context, "Đã đặt lại", Toast.LENGTH_SHORT).show()
+                    // Temporary reset (not persisted until Save)
+                    darkTheme = false; notificationsEnabled = true; language = "Tiếng Việt"; tempReset = true
+                    Toast.makeText(navController.context, "Đã đặt lại tạm thời - ấn Lưu để áp dụng", Toast.LENGTH_SHORT).show()
                 }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(
                 onClick = {
-                    Toast.makeText(navController.context, "Lưu cài đặt (chưa kết nối backend)", Toast.LENGTH_SHORT).show()
+                    val langCode = if (language == "English") "en" else "vi"
+                    scope.launch {
+                        AccountPreferences.saveSettings(context, darkTheme, notificationsEnabled, langCode)
+                    }
+                    Toast.makeText(navController.context, "Đã lưu", Toast.LENGTH_SHORT).show()
+                    tempReset = false
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))

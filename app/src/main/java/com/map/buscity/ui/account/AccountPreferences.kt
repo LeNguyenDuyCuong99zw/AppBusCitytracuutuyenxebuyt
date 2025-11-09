@@ -29,6 +29,7 @@ object AccountPreferences {
     // Rating
     private val KEY_RATING_SCORE = intPreferencesKey("rating_score")
     private val KEY_RATING_FEEDBACK = stringPreferencesKey("rating_feedback_list") // pipe-separated JSON-lite
+    private val KEY_RATING_DELETED_BUFFER = stringPreferencesKey("rating_feedback_deleted_buffer") // temp store for undo
 
     // Profile getters
     fun profileName(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_NAME] ?: "" }
@@ -68,6 +69,9 @@ object AccountPreferences {
     fun ratingFeedbackList(context: Context): Flow<List<String>> = context.dataStore.data.map {
         it[KEY_RATING_FEEDBACK]?.split('\u0001')?.filter { s -> s.isNotBlank() } ?: emptyList()
     }
+    fun deletedBuffer(context: Context): Flow<List<String>> = context.dataStore.data.map {
+        it[KEY_RATING_DELETED_BUFFER]?.split('\u0001')?.filter { s -> s.isNotBlank() } ?: emptyList()
+    }
 
     suspend fun saveRating(context: Context, score: Int) {
         context.dataStore.edit { prefs -> prefs[KEY_RATING_SCORE] = score }
@@ -78,6 +82,41 @@ object AccountPreferences {
             val current = prefs[KEY_RATING_FEEDBACK]?.split('\u0001')?.toMutableList() ?: mutableListOf()
             current.add(entry)
             prefs[KEY_RATING_FEEDBACK] = current.joinToString(separator = "\u0001")
+        }
+    }
+
+    suspend fun removeFeedback(context: Context, entry: String) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[KEY_RATING_FEEDBACK]?.split('\u0001')?.toMutableList() ?: mutableListOf()
+            if (current.remove(entry)) {
+                prefs[KEY_RATING_FEEDBACK] = current.joinToString(separator = "\u0001")
+                // buffer for possible undo
+                val buf = prefs[KEY_RATING_DELETED_BUFFER]?.split('\u0001')?.toMutableList() ?: mutableListOf()
+                buf.add(entry)
+                prefs[KEY_RATING_DELETED_BUFFER] = buf.joinToString(separator = "\u0001")
+            }
+        }
+    }
+
+    suspend fun undoRemove(context: Context, entry: String) {
+        context.dataStore.edit { prefs ->
+            val buf = prefs[KEY_RATING_DELETED_BUFFER]?.split('\u0001')?.toMutableList() ?: mutableListOf()
+            if (buf.remove(entry)) {
+                prefs[KEY_RATING_DELETED_BUFFER] = buf.joinToString(separator = "\u0001")
+                // restore
+                val current = prefs[KEY_RATING_FEEDBACK]?.split('\u0001')?.toMutableList() ?: mutableListOf()
+                current.add(entry)
+                prefs[KEY_RATING_FEEDBACK] = current.joinToString(separator = "\u0001")
+            }
+        }
+    }
+
+    suspend fun purgeDeleted(context: Context, entry: String) {
+        context.dataStore.edit { prefs ->
+            val buf = prefs[KEY_RATING_DELETED_BUFFER]?.split('\u0001')?.toMutableList() ?: mutableListOf()
+            if (buf.remove(entry)) {
+                prefs[KEY_RATING_DELETED_BUFFER] = buf.joinToString(separator = "\u0001")
+            }
         }
     }
 }

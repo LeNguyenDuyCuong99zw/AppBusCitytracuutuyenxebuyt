@@ -71,6 +71,8 @@ dependencies {
     // --- Icons (bộ biểu tượng dùng trong Login/Register/Home) ---
     implementation("androidx.compose.material:material-icons-core:1.6.7")
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
+    // Compose Material (for SwipeToDismiss)
+    implementation("androidx.compose.material:material:1.6.7")
 
     // --- Coil để load ảnh online (dùng trong HomeActivity) ---
     implementation("io.coil-kt:coil-compose:2.6.0")
