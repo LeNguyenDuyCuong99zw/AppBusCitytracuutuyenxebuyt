@@ -1,10 +1,13 @@
 package com.map.buscity.ui.login
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -30,6 +34,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.map.buscity.R
 import com.map.buscity.ui.register.RegisterActivity
 import com.map.buscity.ui.account.HomeActivity
@@ -47,6 +56,53 @@ class LoginActivity : ComponentActivity() {
 @Composable
 fun LoginScreen() {
     val context = LocalContext.current
+    val activity = context as? Activity
+
+    val webClientId = stringResource(id = R.string.default_web_client_id)
+    val gso = remember(webClientId) {
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(webClientId)
+            .requestEmail()
+            .build()
+    }
+    val googleSignInClient = remember(gso) {
+        // activity can be null only in preview; in runtime it will be an Activity
+        GoogleSignIn.getClient(activity ?: return@remember GoogleSignIn.getClient(
+            context, gso
+        ), gso)
+    }
+    val auth = remember { FirebaseAuth.getInstance() }
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            isLoading = true
+            auth.signInWithCredential(credential).addOnCompleteListener { t ->
+                isLoading = false
+                if (t.isSuccessful) {
+                    val user = auth.currentUser
+                    val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
+                    val avatar = user?.photoUrl?.toString() ?: ""
+                    context.startActivity(
+                        Intent(context, HomeActivity::class.java).apply {
+                            putExtra("userName", name)
+                            putExtra("avatarUrl", avatar)
+                        }
+                    )
+                } else {
+                    Toast.makeText(context, t.exception?.localizedMessage ?: "Google sign-in failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: ApiException) {
+            Toast.makeText(context, e.localizedMessage ?: "Google sign-in cancelled", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -184,7 +240,12 @@ fun LoginScreen() {
             // Google Button
             OutlinedButton(
                 onClick = {
-                    Toast.makeText(context, "Google sign-in chưa được tích hợp", Toast.LENGTH_SHORT).show()
+                    if (activity == null) {
+                        Toast.makeText(context, "Context error", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val intent = googleSignInClient.signInIntent
+                        googleSignInLauncher.launch(intent)
+                    }
                 },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
@@ -198,7 +259,7 @@ fun LoginScreen() {
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Continue with Google", color = Color.Gray)
+                Text(if (isLoading) "Signing in..." else "Continue with Google", color = Color.Gray)
             }
 
             Spacer(modifier = Modifier.height(28.dp))

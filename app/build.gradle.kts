@@ -81,20 +81,23 @@ dependencies {
     // --- Firebase ---
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     implementation("com.google.firebase:firebase-analytics")
+    // Use explicit version to avoid BOM resolution issues in some environments
+    implementation("com.google.firebase:firebase-auth-ktx:22.3.1")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.5")
-    
+
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
-    
+
     // Room
     val room_version = "2.6.1"
     implementation("androidx.room:room-runtime:$room_version")
     implementation("androidx.room:room-ktx:$room_version")
     kapt("androidx.room:room-compiler:$room_version")
-    
+
     // MapLibre: add stable, pinned SDK version to avoid breaking changes from newer releases.
     // Use the official MapLibre Android SDK artifact coordinate (android-sdk).
     // If you want a newer/stable release, replace the version below (e.g. android-v11/android-v12 tags).

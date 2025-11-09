@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "80584192899-j0u5qnaj597u0qog8n91kdot3r364r1r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.map.buscity",
+            "certificate_hash": "f5a37d172be1bb23bda0fbd7f701144b73621a52"
+          }
+        },
+        {
           "client_id": "80584192899-p1ino4glt1ugni23nat96ahpv16t8n0p.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

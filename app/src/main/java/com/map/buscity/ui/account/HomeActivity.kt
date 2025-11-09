@@ -1,11 +1,13 @@
 package com.map.buscity.ui.account
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,28 +22,28 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.map.buscity.R
-import androidx.compose.ui.platform.LocalContext
-import android.content.Intent
 import com.map.buscity.ui.login.LoginActivity
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
 import androidx.navigation.NavController
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ✅ Nhận dữ liệu truyền từ LoginActivity
-        val userName = intent.getStringExtra("userName") ?: "Người dùng"
-        val avatarUrl = intent.getStringExtra("avatarUrl")
+        val user = FirebaseAuth.getInstance().currentUser
+        val userName = user?.displayName ?: user?.email ?: "Người dùng"
+        val avatarUrl = user?.photoUrl?.toString() ?: ""
 
         setContent {
-            // Activity này có thể được dùng độc lập; không có NavHost để điều hướng.
-            // Truyền null để chỉ hiển thị giao diện Tài khoản, không điều hướng tab.
             HomeScreen(navController = null, userName = userName, avatarUrl = avatarUrl)
         }
     }
@@ -49,19 +51,24 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun HomeScreen(navController: NavController?, userName: String, avatarUrl: String?) {
-    var selectedTabIndex by remember { mutableStateOf(3) } // Tài khoản là tab thứ 4
+    var selectedTabIndex by remember { mutableStateOf(3) } // tab "Tài khoản"
     val context = LocalContext.current
 
     Scaffold(
-        bottomBar = { BottomNavigationBar(selectedTabIndex = selectedTabIndex, onTabSelected = { index ->
-            selectedTabIndex = index
-            when (index) {
-                0 -> navController?.navigate("home")
-                1 -> navController?.navigate("news")
-                2 -> navController?.navigate("favorite")
-                3 -> { /* đang ở tài khoản */ }
-            }
-        }) }
+        bottomBar = {
+            BottomNavigationBar(
+                selectedTabIndex = selectedTabIndex,
+                onTabSelected = { index ->
+                    selectedTabIndex = index
+                    when (index) {
+                        0 -> navController?.navigate("home")
+                        1 -> navController?.navigate("news")
+                        2 -> navController?.navigate("favorite")
+                        3 -> {}
+                    }
+                }
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -90,7 +97,6 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    // Ảnh đại diện (nếu có URL thì load online, không thì load mặc định)
                     if (!avatarUrl.isNullOrEmpty()) {
                         AsyncImage(
                             model = avatarUrl,
@@ -123,12 +129,7 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Danh sách thông tin
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth()
-            ) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 InfoCard(Icons.Default.Person, "Thông tin cá nhân")
                 InfoCard(Icons.Default.CreditCard, "Quản lý danh sách thẻ")
                 InfoCard(Icons.Default.Receipt, "Thông tin xuất hoá đơn")
@@ -136,20 +137,30 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                 InfoCard(Icons.Default.Storage, "Cập nhật dữ liệu")
                 InfoCard(Icons.Default.Star, "Đánh giá ứng dụng")
                 InfoCard(Icons.Default.Info, "Thông tin công ty")
-                // Đăng xuất
-                InfoCard(
-                    Icons.Default.Logout,
-                    "Đăng xuất",
-                    onClick = {
-                        // TODO: Nếu dùng FirebaseAuth, gọi FirebaseAuth.getInstance().signOut()
-                        val intent = Intent(context, LoginActivity::class.java).apply {
-                            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        }
-                        context.startActivity(intent)
-                    }
-                )
+
+                // ✅ Đăng xuất
+                InfoCard(Icons.Default.Logout, "Đăng xuất") {
+                    signOutUser(context)
+                }
             }
         }
+    }
+}
+
+// --- Hàm xử lý đăng xuất Firebase + Google ---
+fun signOutUser(context: Context) {
+    val auth = FirebaseAuth.getInstance()
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestEmail()
+        .build()
+    val googleClient = GoogleSignIn.getClient(context, gso)
+
+    auth.signOut()
+    googleClient.signOut().addOnCompleteListener {
+        val intent = Intent(context, LoginActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        context.startActivity(intent)
     }
 }
 
@@ -174,19 +185,9 @@ fun InfoCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = Color(0xFF424242),
-                modifier = Modifier.size(22.dp)
-            )
+            Icon(icon, contentDescription = null, tint = Color(0xFF424242), modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF212121)
-            )
+            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF212121))
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -199,10 +200,7 @@ fun InfoCard(
 
 @Composable
 fun BottomNavigationBar(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
+    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
         NavigationBarItem(
             selected = selectedTabIndex == 0,
             onClick = { onTabSelected(0) },
