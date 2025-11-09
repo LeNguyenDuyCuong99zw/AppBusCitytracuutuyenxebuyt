@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import com.map.buscity.ui.theme.BusCityTheme
 import com.map.buscity.ui.splash.SplashScreen
 import com.map.buscity.ui.home.HomeScreen
-import com.map.buscity.ui.account.HomeScreen as AccountHomeScreen
+import com.map.buscity.ui.account.AccountScreen
 import kotlinx.coroutines.delay
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                                 com.map.buscity.ui.routes.BusRouteDetailScreen(routeId = id, onBack = { navController.navigateUp() })
                             }
                             composable("account") {
-                                AccountHomeScreen(navController = navController, userName = "Người dùng", avatarUrl = null)
+                                AccountScreen(navController = navController, userName = "Người dùng", avatarUrl = null)
                             }
                         }
                     }

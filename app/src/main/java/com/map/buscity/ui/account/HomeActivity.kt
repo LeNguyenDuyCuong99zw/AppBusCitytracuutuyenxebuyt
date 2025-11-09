@@ -34,6 +34,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.map.buscity.ui.home.HomeScreen as MainHomeScreen
+import com.map.buscity.ui.news.NewsScreen
+import com.map.buscity.ui.favorite.FavoriteScreen
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,30 +50,51 @@ class HomeActivity : ComponentActivity() {
         val avatarUrl = user?.photoUrl?.toString() ?: ""
 
         setContent {
-            HomeScreen(navController = null, userName = userName, avatarUrl = avatarUrl)
+            val navController = rememberNavController()
+            // Start at home (change to "account" if you prefer opening the account tab first)
+            NavHost(navController = navController, startDestination = "home") {
+                composable("home") { MainHomeScreen(navController) }
+                composable("news") { NewsScreen(navController) }
+                composable("favorite") { FavoriteScreen(navController) }
+                composable("account") { AccountScreen(navController, userName, avatarUrl) }
+            }
         }
     }
 }
 
 @Composable
-fun HomeScreen(navController: NavController?, userName: String, avatarUrl: String?) {
-    var selectedTabIndex by remember { mutableStateOf(3) } // tab "Tài khoản"
+fun AccountScreen(navController: NavController, userName: String, avatarUrl: String?) {
+    var selectedTabIndex by remember { mutableStateOf(3) }
     val context = LocalContext.current
 
     Scaffold(
         bottomBar = {
-            BottomNavigationBar(
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = { index ->
-                    selectedTabIndex = index
-                    when (index) {
-                        0 -> navController?.navigate("home")
-                        1 -> navController?.navigate("news")
-                        2 -> navController?.navigate("favorite")
-                        3 -> {}
-                    }
-                }
-            )
+            NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
+                NavigationBarItem(
+                    selected = selectedTabIndex == 0,
+                    onClick = { selectedTabIndex = 0; navController.navigate("home") { launchSingleTop = true; popUpTo("home") { inclusive = false } } },
+                    icon = { Icon(Icons.Default.Home, contentDescription = null) },
+                    label = { Text("Trang chủ") }
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 1,
+                    onClick = { selectedTabIndex = 1; navController.navigate("news") { launchSingleTop = true; popUpTo("home") { inclusive = false } } },
+                    icon = { Icon(Icons.Default.Notifications, contentDescription = null) },
+                    label = { Text("Thông báo") }
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 2,
+                    onClick = { selectedTabIndex = 2; navController.navigate("favorite") { launchSingleTop = true; popUpTo("home") { inclusive = false } } },
+                    icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) },
+                    label = { Text("Yêu thích") }
+                )
+                NavigationBarItem(
+                    selected = selectedTabIndex == 3,
+                    onClick = { selectedTabIndex = 3 },
+                    icon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF4CAF50)) },
+                    label = { Text("Tài khoản", color = Color(0xFF4CAF50)) }
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -76,7 +103,6 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                 .padding(padding)
                 .background(Color(0xFFF6F6F6))
         ) {
-            // Header gradient + avatar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,7 +122,6 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                         fontSize = 20.sp,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
-
                     if (!avatarUrl.isNullOrEmpty()) {
                         AsyncImage(
                             model = avatarUrl,
@@ -116,7 +141,6 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                             contentScale = ContentScale.Crop
                         )
                     }
-
                     Text(
                         text = userName,
                         fontWeight = FontWeight.Bold,
@@ -126,9 +150,7 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                     )
                 }
             }
-
             Spacer(modifier = Modifier.height(20.dp))
-
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 InfoCard(Icons.Default.Person, "Thông tin cá nhân")
                 InfoCard(Icons.Default.CreditCard, "Quản lý danh sách thẻ")
@@ -137,11 +159,7 @@ fun HomeScreen(navController: NavController?, userName: String, avatarUrl: Strin
                 InfoCard(Icons.Default.Storage, "Cập nhật dữ liệu")
                 InfoCard(Icons.Default.Star, "Đánh giá ứng dụng")
                 InfoCard(Icons.Default.Info, "Thông tin công ty")
-
-                // ✅ Đăng xuất
-                InfoCard(Icons.Default.Logout, "Đăng xuất") {
-                    signOutUser(context)
-                }
+                InfoCard(Icons.Default.Logout, "Đăng xuất") { signOutUser(context) }
             }
         }
     }
@@ -198,32 +216,4 @@ fun InfoCard(
     }
 }
 
-@Composable
-fun BottomNavigationBar(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
-    NavigationBar(containerColor = Color.White, tonalElevation = 8.dp) {
-        NavigationBarItem(
-            selected = selectedTabIndex == 0,
-            onClick = { onTabSelected(0) },
-            icon = { Icon(Icons.Default.Home, contentDescription = null) },
-            label = { Text("Trang chủ") }
-        )
-        NavigationBarItem(
-            selected = selectedTabIndex == 1,
-            onClick = { onTabSelected(1) },
-            icon = { Icon(Icons.Default.Notifications, contentDescription = null) },
-            label = { Text("Thông báo") }
-        )
-        NavigationBarItem(
-            selected = selectedTabIndex == 2,
-            onClick = { onTabSelected(2) },
-            icon = { Icon(Icons.Default.FavoriteBorder, contentDescription = null) },
-            label = { Text("Yêu thích") }
-        )
-        NavigationBarItem(
-            selected = selectedTabIndex == 3,
-            onClick = { onTabSelected(3) },
-            icon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF4CAF50)) },
-            label = { Text("Tài khoản", color = Color(0xFF4CAF50)) }
-        )
-    }
-}
+// Old BottomNavigationBar removed; each screen now manages navigation consistently.
