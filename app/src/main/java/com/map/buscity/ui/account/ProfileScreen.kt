@@ -1,5 +1,6 @@
 package com.map.buscity.ui.account
 
+import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.map.buscity.R
@@ -41,6 +44,7 @@ fun ProfileScreen(navController: NavController) {
     val phoneDs by AccountPreferences.profilePhone(context).collectAsState(initial = "")
     val genderDs by AccountPreferences.profileGender(context).collectAsState(initial = "")
     val birthdayDs by AccountPreferences.profileBirthday(context).collectAsState(initial = "")
+    val avatarDs by AccountPreferences.profileAvatar(context).collectAsState(initial = "")
 
     var displayName by remember(nameDs) { mutableStateOf(if (nameDs.isNotBlank()) nameDs else (user?.displayName ?: "")) }
     val email = user?.email ?: ""
@@ -48,6 +52,35 @@ fun ProfileScreen(navController: NavController) {
     var gender by remember(genderDs) { mutableStateOf(genderDs.ifBlank { "male" }) }
     var birthday by remember(birthdayDs) { mutableStateOf(birthdayDs) }
     var phoneError by remember { mutableStateOf<String?>(null) }
+    var localAvatar by remember(avatarDs) { mutableStateOf(avatarDs) }
+
+    // Image picker launcher using OpenDocument to persist URI permission across app restarts
+    val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            localAvatar = it.toString()
+            // Persist read permission so the URI remains accessible after process death/restart
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) { /* ignore if not supported */ }
+
+            scope.launch { AccountPreferences.saveAvatar(context, localAvatar) }
+            // update Firebase profile photo (best-effort; local content URI may not upload)
+            val current = FirebaseAuth.getInstance().currentUser
+            if (current != null) {
+                val updates = UserProfileChangeRequest.Builder().setPhotoUri(uri).build()
+                current.updateProfile(updates)
+            }
+            Toast.makeText(context, "Đã chọn ảnh đại diện", Toast.LENGTH_SHORT).show()
+            // reload screen
+            navController.navigate("account/profile") {
+                popUpTo("account/profile") { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -77,9 +110,14 @@ fun ProfileScreen(navController: NavController) {
                     modifier = Modifier.size(110.dp),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    if (user?.photoUrl != null) {
+                    val showAvatarModel: Any? = when {
+                        localAvatar.isNotBlank() -> localAvatar
+                        user?.photoUrl != null -> user.photoUrl
+                        else -> null
+                    }
+                    if (showAvatarModel != null) {
                         AsyncImage(
-                            model = user.photoUrl,
+                            model = showAvatarModel,
                             contentDescription = null,
                             modifier = Modifier
                                 .size(100.dp)
@@ -96,9 +134,7 @@ fun ProfileScreen(navController: NavController) {
                             contentScale = ContentScale.Crop
                         )
                     }
-                    IconButton(onClick = {
-                        Toast.makeText(context, "Chọn ảnh đại diện (chưa triển khai)", Toast.LENGTH_SHORT).show()
-                    }) {
+                    IconButton(onClick = { pickImageLauncher.launch(arrayOf("image/*")) }) {
                         Icon(Icons.Default.Edit, contentDescription = null, tint = Color(0xFF4CAF50))
                     }
                 }
@@ -178,6 +214,11 @@ fun ProfileScreen(navController: NavController) {
                             birthday = birthday
                         )
                         Toast.makeText(context, "Đã lưu thay đổi", Toast.LENGTH_SHORT).show()
+                        // reload screen to reflect updates immediately
+                        navController.navigate("account/profile") {
+                            popUpTo("account/profile") { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),

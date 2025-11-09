@@ -92,6 +92,11 @@ fun RateAppScreen(navController: NavController) {
                         if (feedback.isNotBlank()) AccountPreferences.addFeedback(context, "${rating}★ - ${feedback}")
                         feedback = ""
                         Toast.makeText(context, "Đã gửi phản hồi", Toast.LENGTH_SHORT).show()
+                        // reload screen after update per requirement
+                        navController.navigate("account/rate") {
+                            popUpTo("account/rate") { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
@@ -131,9 +136,9 @@ fun RateAppScreen(navController: NavController) {
 @Composable
 private fun FeedbackSwipeItem(entry: String, onDelete: () -> Unit) {
     val dismissState = rememberDismissState()
-    if (dismissState.isDismissed(DismissDirection.EndToStart)) {
-        // trigger delete once when swiped to end
-        LaunchedEffect(entry) { onDelete() }
+    // trigger delete when dismissed either direction
+    if (dismissState.isDismissed(DismissDirection.EndToStart) || dismissState.isDismissed(DismissDirection.StartToEnd)) {
+        LaunchedEffect(key1 = "deleted-$entry") { onDelete() }
     }
     SwipeToDismiss(
         state = dismissState,
@@ -151,13 +156,17 @@ private fun FeedbackSwipeItem(entry: String, onDelete: () -> Unit) {
                 null -> Icons.Filled.Delete
             }
             Surface(color = bgColor, modifier = Modifier.fillMaxWidth()) {
-                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.End) {
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp), horizontalArrangement = Arrangement.End) {
                     Icon(icon, contentDescription = null, tint = Color.Gray)
                 }
             }
         },
         dismissContent = {
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Card(modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)) {
                 Text(entry, modifier = Modifier.padding(12.dp))
             }
         }

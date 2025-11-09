@@ -14,7 +14,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.*
+// Dùng bộ icon viền (Outlined) giống hình minh họa và tô xanh khi được chọn
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Person
+// Các icon dạng Filled vẫn dùng trong danh sách chức năng bên dưới
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,10 +46,12 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.map.buscity.R
 import com.map.buscity.ui.login.LoginActivity
+import com.map.buscity.ui.theme.BusCityTheme
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.map.buscity.ui.favorite.FavoriteScreen
 import com.map.buscity.ui.news.NewsScreen
 import com.map.buscity.ui.home.HomeScreen as MainHomeScreen
@@ -47,23 +60,31 @@ import com.map.buscity.ui.account.SettingsScreen
 import com.map.buscity.ui.account.DataSyncScreen
 import com.map.buscity.ui.account.RateAppScreen
 import com.map.buscity.ui.account.AboutScreen
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.map
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.launch
 
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
-            val navController = rememberNavController()
-            NavHost(navController = navController, startDestination = "account") {
-                composable("home") { MainHomeScreen(navController) }
-                composable("news") { NewsScreen(navController) }
-                composable("favorite") { FavoriteScreen(navController) }
-                composable("account") { AccountScreen(navController) }
-                composable("account/profile") { ProfileScreen(navController) }
-                composable("account/settings") { SettingsScreen(navController) }
-                composable("account/datasync") { DataSyncScreen(navController) }
-                composable("account/rate") { RateAppScreen(navController) }
-                composable("account/about") { AboutScreen(navController) }
+            // observe dark theme preference so standalone HomeActivity respects global setting
+            val darkPref by AccountPreferences.darkTheme(this).collectAsState(initial = false)
+            BusCityTheme(darkTheme = darkPref) {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "account") {
+                    composable("home") { MainHomeScreen(navController) }
+                    composable("news") { NewsScreen(navController) }
+                    composable("favorite") { FavoriteScreen(navController) }
+                    composable("account") { AccountScreen(navController) }
+                    composable("account/profile") { ProfileScreen(navController) }
+                    composable("account/settings") { SettingsScreen(navController) }
+                    composable("account/datasync") { DataSyncScreen(navController) }
+                    composable("account/rate") { RateAppScreen(navController) }
+                    composable("account/about") { AboutScreen(navController) }
+                }
             }
         }
     }
@@ -71,12 +92,16 @@ class HomeActivity : ComponentActivity() {
 
 @Composable
 fun AccountScreen(navController: NavController) {
-    var selectedTabIndex by remember { mutableStateOf(3) }
+    // Không giữ state thủ công cho tab đang chọn nữa.
+    // Thay vào đó, đọc route hiện tại từ NavController để đồng bộ màu icon/label tuyệt đối.
     val context = LocalContext.current
 
     // Observe Firebase auth state to reflect changes after login
     val auth = remember { FirebaseAuth.getInstance() }
     var user by remember { mutableStateOf(auth.currentUser) }
+    val contextLocal = LocalContext.current
+    val avatarPref by AccountPreferences.profileAvatar(contextLocal).collectAsState(initial = "")
+    val scope = rememberCoroutineScope()
 
     DisposableEffect(Unit) {
         val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
@@ -88,102 +113,122 @@ fun AccountScreen(navController: NavController) {
 
     val displayName = user?.displayName ?: user?.email ?: "Khách"
     var signingOut by remember { mutableStateOf(false) }
-    val avatarUrl = user?.photoUrl?.toString()
+    val avatarUrl = if (avatarPref.isNotBlank()) avatarPref else user?.photoUrl?.toString()
 
     Scaffold(
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                // Lấy route hiện tại để xác định tab nào đang được chọn
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route
+                val isHome = currentRoute == "home"
+                val isNews = currentRoute == "news"
+                val isFavorite = currentRoute == "favorite"
+                // Với mọi route bắt đầu bằng "account" (ví dụ account/profile), vẫn tô sáng tab Tài khoản
+                val isAccount = currentRoute?.startsWith("account") == true || currentRoute == null
+                // Màu chọn/không chọn thống nhất
+                val selectedColor = Color(0xFF4CAF50)
+                val unselectedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .6f)
                 // --- Trang chủ ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0; navController.navigate("home") },
+                    selected = isHome,
+                    // Điều hướng có launchSingleTop để tránh trùng bản ghi và popUpTo giữ backstack gọn
+                    onClick = {
+                        navController.navigate("home") {
+                            launchSingleTop = true
+                            popUpTo("home") { inclusive = false }
+                        }
+                    },
                     icon = {
-                        Icon(
-                            Icons.Default.Home,
-                            contentDescription = null,
-                            tint = if (selectedTabIndex == 0) Color(0xFF4CAF50) else Color.Gray
-                        )
+                        Icon(Icons.Outlined.Home, contentDescription = null, tint = if (isHome) selectedColor else unselectedColor)
                     },
                     label = {
                         Text(
                             "Trang chủ",
-                            color = if (selectedTabIndex == 0) Color(0xFF4CAF50) else Color.Gray
+                            color = if (isHome) selectedColor else unselectedColor
                         )
-                    }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
 
                 // --- Thông báo ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 1,
-                    onClick = { selectedTabIndex = 1; navController.navigate("news") },
+                    selected = isNews,
+                    onClick = {
+                        navController.navigate("news") {
+                            launchSingleTop = true
+                            popUpTo("news") { inclusive = false }
+                        }
+                    },
                     icon = {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = if (selectedTabIndex == 1) Color(0xFF4CAF50) else Color.Gray
-                        )
+                        Icon(Icons.Outlined.Notifications, contentDescription = null, tint = if (isNews) selectedColor else unselectedColor)
                     },
                     label = {
                         Text(
                             "Thông báo",
-                            color = if (selectedTabIndex == 1) Color(0xFF4CAF50) else Color.Gray
+                            color = if (isNews) selectedColor else unselectedColor
                         )
-                    }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
 
                 // --- Yêu thích ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 2,
-                    onClick = { selectedTabIndex = 2; navController.navigate("favorite") },
+                    selected = isFavorite,
+                    onClick = {
+                        navController.navigate("favorite") {
+                            launchSingleTop = true
+                            popUpTo("favorite") { inclusive = false }
+                        }
+                    },
                     icon = {
-                        Icon(
-                            Icons.Default.FavoriteBorder,
-                            contentDescription = null,
-                            tint = if (selectedTabIndex == 2) Color(0xFF4CAF50) else Color.Gray
-                        )
+                        Icon(Icons.Outlined.FavoriteBorder, contentDescription = null, tint = if (isFavorite) selectedColor else unselectedColor)
                     },
                     label = {
                         Text(
                             "Yêu thích",
-                            color = if (selectedTabIndex == 2) Color(0xFF4CAF50) else Color.Gray
+                            color = if (isFavorite) selectedColor else unselectedColor
                         )
-                    }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
 
                 // --- 🟢 Tài khoản (giống hình minh họa) ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 3,
-                    onClick = { selectedTabIndex = 3 },
+                    selected = isAccount,
+                    onClick = { /* Ở trang tài khoản thì không điều hướng thêm */ },
                     icon = {
-                        if (selectedTabIndex == 3) {
-                            Box(
-                                modifier = Modifier
-                                    .background(Color(0xFFDFF6E2), RoundedCornerShape(50))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color(0xFF2E7D32),
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                        } else {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = Color.Gray
-                            )
-                        }
+                        // Bỏ nền pill, chỉ tô màu icon theo trạng thái như các tab khác
+                        Icon(Icons.Outlined.Person, contentDescription = null, tint = if (isAccount) selectedColor else unselectedColor)
                     },
                     label = {
                         Text(
                             "Tài khoản",
-                            color = if (selectedTabIndex == 3) Color(0xFF2E7D32) else Color.Gray,
-                            fontWeight = if (selectedTabIndex == 3) FontWeight.Medium else FontWeight.Normal
+                            color = if (isAccount) selectedColor else unselectedColor,
+                            fontWeight = if (isAccount) FontWeight.Medium else FontWeight.Normal
                         )
-                    }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
             }
         }
@@ -192,7 +237,7 @@ fun AccountScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF6F6F6))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             // --- Header gradient ---
             Box(
@@ -220,7 +265,7 @@ fun AccountScreen(navController: NavController) {
                         modifier = Modifier
                             .size(100.dp)
                             .shadow(6.dp, CircleShape)
-                            .background(Color.White, CircleShape)
+                            .background(MaterialTheme.colorScheme.surface, CircleShape)
                             .clip(CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
@@ -254,17 +299,17 @@ fun AccountScreen(navController: NavController) {
                             }
                         },
                         shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface),
                         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 3.dp)
                     ) {
                         if (signingOut) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF4CAF50), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                         }
                         Text(
                             text = if (user == null) "Đăng nhập" else displayName,
-                            color = Color(0xFF4CAF50),
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp
                         )
@@ -306,10 +351,20 @@ fun AccountScreen(navController: NavController) {
                                 signOutUser(
                                     context,
                                     onSuccess = {
-                                        signingOut = false
-                                        Toast.makeText(context, "Đã đăng xuất", Toast.LENGTH_SHORT).show()
-                                        selectedTabIndex = 3
-                                        navController.navigate("account") { launchSingleTop = true }
+                                        // Sau khi Firebase/Google đã signOut, dọn avatar trong DataStore
+                                        // thực hiện trong coroutine để đảm bảo xong rồi mới điều hướng lại
+                                        scope.launch {
+                                            try {
+                                                AccountPreferences.saveAvatar(context, "")
+                                            } catch (_: Exception) { /* bỏ qua để không crash khi xóa */ }
+                                            signingOut = false
+                                            Toast.makeText(context, "Đã đăng xuất", Toast.LENGTH_SHORT).show()
+                                            // Điều hướng lại trang tài khoản và làm mới destination hiện tại
+                                            navController.navigate("account") {
+                                                launchSingleTop = true
+                                                popUpTo("account") { inclusive = true }
+                                            }
+                                        }
                                     },
                                     onError = {
                                         signingOut = false
@@ -352,7 +407,7 @@ fun InfoRow(
             .padding(vertical = 6.dp)
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -361,14 +416,14 @@ fun InfoRow(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF424242), modifier = Modifier.size(22.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.width(12.dp))
-            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color(0xFF212121))
+            Text(text = title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = Color(0xFF9E9E9E)
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = .4f)
             )
         }
     }

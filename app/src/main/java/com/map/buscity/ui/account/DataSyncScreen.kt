@@ -60,6 +60,11 @@ fun DataSyncScreen(navController: NavController) {
                             }
                             isSyncing = false
                             Toast.makeText(navController.context, "Cập nhật thành công", Toast.LENGTH_SHORT).show()
+                            // reload current screen after update
+                            navController.navigate("account/datasync") {
+                                popUpTo("account/datasync") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 },

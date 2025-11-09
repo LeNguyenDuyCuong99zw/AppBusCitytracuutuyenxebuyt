@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +72,9 @@ fun LoginScreen() {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var keepSignedIn by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetSending by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -177,19 +181,8 @@ fun LoginScreen() {
                     Text("Keep me signed in", color = Color.White)
                 }
                 TextButton(onClick = {
-                    if (email.isBlank()) {
-                        Toast.makeText(context, "Nhập email để đặt lại mật khẩu", Toast.LENGTH_SHORT).show()
-                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                        Toast.makeText(context, "Email không hợp lệ", Toast.LENGTH_SHORT).show()
-                    } else {
-                        auth.sendPasswordResetEmail(email.trim()).addOnCompleteListener { t ->
-                            if (t.isSuccessful) {
-                                Toast.makeText(context, "Đã gửi email đặt lại mật khẩu", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, t.exception?.localizedMessage ?: "Gửi thất bại", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
+                    resetEmail = email
+                    showResetDialog = true
                 }) { Text("Forgot Password?", color = Color.White) }
             }
 
@@ -269,5 +262,49 @@ fun LoginScreen() {
                 Text("Create an account", color = Color(0xFFFFC107), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
+    }
+
+    if (showResetDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!resetSending) showResetDialog = false },
+            confirmButton = {
+                TextButton(
+                    enabled = !resetSending,
+                    onClick = {
+                        val target = resetEmail.trim()
+                        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(target).matches()) {
+                            Toast.makeText(context, "Email không hợp lệ", Toast.LENGTH_SHORT).show(); return@TextButton
+                        }
+                        resetSending = true
+                        auth.sendPasswordResetEmail(target).addOnCompleteListener { t ->
+                            resetSending = false
+                            if (t.isSuccessful) {
+                                Toast.makeText(context, "Đã gửi email đặt lại mật khẩu", Toast.LENGTH_SHORT).show()
+                                showResetDialog = false
+                            } else {
+                                Toast.makeText(context, t.exception?.localizedMessage ?: "Gửi thất bại", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                ) { Text(if (resetSending) "Đang gửi..." else "Gửi") }
+            },
+            dismissButton = {
+                TextButton(enabled = !resetSending, onClick = { showResetDialog = false }) { Text("Hủy") }
+            },
+            icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            title = { Text("Quên mật khẩu") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Nhập email để nhận liên kết đặt lại mật khẩu.")
+                    OutlinedTextField(
+                        value = resetEmail,
+                        onValueChange = { resetEmail = it },
+                        singleLine = true,
+                        placeholder = { Text("email@example.com") },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+                    )
+                }
+            }
+        )
     }
 }

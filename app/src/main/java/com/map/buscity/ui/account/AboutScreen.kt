@@ -50,17 +50,17 @@ fun AboutScreen(navController: NavController) {
             Divider()
             Text("Liên kết:")
 
-            TextButton(onClick = { showPrivacy = !showPrivacy }) { Text("Chính sách bảo mật") }
+            TextButton(onClick = { showPrivacy = !showPrivacy; navController.navigate("account/about") { launchSingleTop = true } }) { Text("Chính sách bảo mật") }
             if (showPrivacy) {
                 Text("Nội dung chính sách bảo mật: Chúng tôi tôn trọng quyền riêng tư của bạn và chỉ thu thập dữ liệu cần thiết.", modifier = Modifier.padding(start = 8.dp))
             }
 
-            TextButton(onClick = { showTerms = !showTerms }) { Text("Điều khoản sử dụng") }
+            TextButton(onClick = { showTerms = !showTerms; navController.navigate("account/about") { launchSingleTop = true } }) { Text("Điều khoản sử dụng") }
             if (showTerms) {
                 Text("Điều khoản: Vui lòng sử dụng ứng dụng đúng mục đích, không can thiệp trái phép.", modifier = Modifier.padding(start = 8.dp))
             }
 
-            TextButton(onClick = { showSupport = !showSupport }) { Text("Liên hệ hỗ trợ") }
+            TextButton(onClick = { showSupport = !showSupport; navController.navigate("account/about") { launchSingleTop = true } }) { Text("Liên hệ hỗ trợ") }
             if (showSupport) {
                 Text("Email: support@buscity.example | SĐT: 0123 456 789", modifier = Modifier.padding(start = 8.dp))
             }

@@ -20,6 +20,7 @@ object AccountPreferences {
     private val KEY_PROFILE_PHONE = stringPreferencesKey("profile_phone")
     private val KEY_PROFILE_GENDER = stringPreferencesKey("profile_gender") // "male" | "female"
     private val KEY_PROFILE_BIRTHDAY = stringPreferencesKey("profile_birthday")
+    private val KEY_PROFILE_AVATAR = stringPreferencesKey("profile_avatar_uri") // persisted user selected avatar (content:// uri)
 
     // Settings
     private val KEY_SETTINGS_DARK = booleanPreferencesKey("settings_dark")
@@ -36,6 +37,7 @@ object AccountPreferences {
     fun profilePhone(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_PHONE] ?: "" }
     fun profileGender(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_GENDER] ?: "" }
     fun profileBirthday(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_BIRTHDAY] ?: "" }
+    fun profileAvatar(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_AVATAR] ?: "" }
 
     suspend fun saveProfile(context: Context, name: String, phone: String, gender: String, birthday: String) {
         context.dataStore.edit { prefs ->
@@ -46,9 +48,16 @@ object AccountPreferences {
         }
     }
 
+    suspend fun saveAvatar(context: Context, avatarUri: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_PROFILE_AVATAR] = avatarUri
+        }
+    }
+
     // Settings getters
     fun darkTheme(context: Context): Flow<Boolean> = context.dataStore.data.map { it[KEY_SETTINGS_DARK] ?: false }
     fun notifications(context: Context): Flow<Boolean> = context.dataStore.data.map { it[KEY_SETTINGS_NOTI] ?: true }
+    // language no longer exposed in UI; keep for backward compatibility
     fun language(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_SETTINGS_LANG] ?: "vi" }
 
     suspend fun saveSettings(context: Context, dark: Boolean, noti: Boolean, lang: String) {

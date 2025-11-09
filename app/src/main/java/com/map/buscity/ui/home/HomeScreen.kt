@@ -51,10 +51,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Person
+// Sử dụng bộ icon viền mảnh (Outlined) giống hình minh họa
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.NavigationBar
@@ -67,6 +68,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.runtime.*
 import androidx.navigation.compose.rememberNavController
 
@@ -75,49 +77,97 @@ import androidx.navigation.compose.rememberNavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    var selectedTabIndex by remember { mutableStateOf(0) } // state cho bottom navigation
+    // Đồng bộ chọn tab theo route hiện tại của NavController, không dùng chỉ số tự quản nữa
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val isHome = currentRoute == "home" || currentRoute.isNullOrBlank()
+    val isNews = currentRoute == "news"
+    val isFavorite = currentRoute == "favorite"
+    val isAccount = currentRoute?.startsWith("account") == true
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Color(0xFFF6F7FB),
+        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar(containerColor = Color.White, tonalElevation = 4.dp) {
+            NavigationBar(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
+                // Màu thương hiệu cho trạng thái được chọn (xanh lá)
+                val selectedColor = Color(0xFF4CAF50)
+                val unselectedColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
+                // --- Trang chủ ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 0,
-                    onClick = { selectedTabIndex = 0 },
-                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
-                    label = { Text("Trang chủ", fontSize = 11.sp) },
+                    selected = isHome,
+                    onClick = {
+                        navController.navigate("home") {
+                            launchSingleTop = true
+                            popUpTo("home") { inclusive = false }
+                        }
+                    },
+                    icon = { Icon(Icons.Outlined.Home, contentDescription = "Trang chủ", tint = if (isHome) selectedColor else unselectedColor) },
+                    label = { Text("Trang chủ", fontSize = 11.sp, color = if (isHome) selectedColor else unselectedColor) },
                     colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF63EE83),
-                        selectedTextColor = Color(0xFF63EE83)
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
                     )
                 )
+
+                // --- Thông báo ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 1,
+                    selected = isNews,
                     onClick = {
-                        selectedTabIndex = 1
-                        navController.navigate("news")
+                        navController.navigate("news") {
+                            launchSingleTop = true
+                            popUpTo("news") { inclusive = false }
+                        }
                     },
-                    icon = { Icon(Icons.Filled.Notifications, contentDescription = "Thông báo") },
-                    label = { Text("Thông báo", fontSize = 11.sp) }
+                    icon = { Icon(Icons.Outlined.Notifications, contentDescription = "Thông báo", tint = if (isNews) selectedColor else unselectedColor) },
+                    label = { Text("Thông báo", fontSize = 11.sp, color = if (isNews) selectedColor else unselectedColor) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
+
+                // --- Yêu thích ---
                 NavigationBarItem(
-                    selected = selectedTabIndex == 2,
-                    onClick = { 
-                        selectedTabIndex = 2
-                        navController.navigate("favorite")
-                    },
-                    icon = { Icon(Icons.Filled.Favorite, contentDescription = "Yêu thích") },
-                    label = { Text("Yêu thích", fontSize = 11.sp) }
-                )
-                NavigationBarItem(
-                    selected = selectedTabIndex == 3,
+                    selected = isFavorite,
                     onClick = {
-                        selectedTabIndex = 3
-                        navController.navigate("account")
+                        navController.navigate("favorite") {
+                            launchSingleTop = true
+                            popUpTo("favorite") { inclusive = false }
+                        }
                     },
-                    icon = { Icon(Icons.Filled.Person, contentDescription = "Tài khoản") },
-                    label = { Text("Tài khoản", fontSize = 11.sp) }
+                    icon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Yêu thích", tint = if (isFavorite) selectedColor else unselectedColor) },
+                    label = { Text("Yêu thích", fontSize = 11.sp, color = if (isFavorite) selectedColor else unselectedColor) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
+                )
+
+                // --- Tài khoản ---
+                NavigationBarItem(
+                    selected = isAccount,
+                    onClick = {
+                        navController.navigate("account") {
+                            launchSingleTop = true
+                            popUpTo("account") { inclusive = false }
+                        }
+                    },
+                    icon = { Icon(Icons.Outlined.Person, contentDescription = "Tài khoản", tint = if (isAccount) selectedColor else unselectedColor) },
+                    label = { Text("Tài khoản", fontSize = 11.sp, color = if (isAccount) selectedColor else unselectedColor) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = selectedColor,
+                        selectedTextColor = selectedColor,
+                        unselectedIconColor = unselectedColor,
+                        unselectedTextColor = unselectedColor
+                    )
                 )
             }
         }
@@ -308,23 +358,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-            // Bottom navigation simple row
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)) {
-                Row(modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    BottomNavItem(label = "Home")
-                    BottomNavItem(label = "Search")
-                    BottomNavItem(label = "Fav")
-                    BottomNavItem(label = "Profile")
-                    BottomNavItem(label = "Settings")
-                }
-            }
         }
     }
 }
@@ -418,13 +451,4 @@ private fun FeatureItem(
     }
 }
 
-@Composable
-private fun BottomNavItem(label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(Color.White)) {}
-        Text(text = label, fontSize = 11.sp)
-    }
-}
+// Đã bỏ BottomNavItem custom vì dùng NavigationBar (Material3) ở trên
