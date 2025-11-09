@@ -31,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -46,9 +45,7 @@ import com.map.buscity.ui.account.HomeActivity
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            LoginScreen()
-        }
+        setContent { LoginScreen() }
     }
 }
 
@@ -65,15 +62,15 @@ fun LoginScreen() {
             .requestEmail()
             .build()
     }
-    val googleSignInClient = remember(gso) {
-        // activity can be null only in preview; in runtime it will be an Activity
-        GoogleSignIn.getClient(activity ?: return@remember GoogleSignIn.getClient(
-            context, gso
-        ), gso)
-    }
+    val googleSignInClient = remember(gso) { GoogleSignIn.getClient(context, gso) }
     val auth = remember { FirebaseAuth.getInstance() }
 
     var isLoading by remember { mutableStateOf(false) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var keepSignedIn by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -104,11 +101,6 @@ fun LoginScreen() {
         }
     }
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var keepSignedIn by remember { mutableStateOf(false) }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -125,20 +117,9 @@ fun LoginScreen() {
                 .padding(horizontal = 32.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "Login",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            Text(
-                text = "Welcome back to the app!",
-                fontSize = 15.sp,
-                color = Color(0xFFE8F5E9),
-                modifier = Modifier.padding(bottom = 28.dp)
-            )
+            Text(text = "Login", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = "Welcome back to the app!", fontSize = 15.sp, color = Color(0xFFE8F5E9), modifier = Modifier.padding(bottom = 28.dp))
 
-            // Email
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -158,7 +139,6 @@ fun LoginScreen() {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Password
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -166,9 +146,7 @@ fun LoginScreen() {
                 label = { Text("Password") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
-                    val image = if (passwordVisible)
-                        Icons.Default.Visibility
-                    else Icons.Default.VisibilityOff
+                    val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(image, contentDescription = "Toggle Password")
                     }
@@ -185,7 +163,6 @@ fun LoginScreen() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Forgot password + Keep signed in
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -200,36 +177,68 @@ fun LoginScreen() {
                     Text("Keep me signed in", color = Color.White)
                 }
                 TextButton(onClick = {
-                    Toast.makeText(context, "Forgot password clicked", Toast.LENGTH_SHORT).show()
-                }) {
-                    Text("Forgot Password?", color = Color.White)
-                }
+                    if (email.isBlank()) {
+                        Toast.makeText(context, "Nhập email để đặt lại mật khẩu", Toast.LENGTH_SHORT).show()
+                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                        Toast.makeText(context, "Email không hợp lệ", Toast.LENGTH_SHORT).show()
+                    } else {
+                        auth.sendPasswordResetEmail(email.trim()).addOnCompleteListener { t ->
+                            if (t.isSuccessful) {
+                                Toast.makeText(context, "Đã gửi email đặt lại mật khẩu", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, t.exception?.localizedMessage ?: "Gửi thất bại", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }) { Text("Forgot Password?", color = Color.White) }
+            }
+
+            if (loginError != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = loginError ?: "", color = Color(0xFFFFCDD2), fontSize = 13.sp, modifier = Modifier.fillMaxWidth())
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Login Button
             Button(
                 onClick = {
-                    Toast.makeText(context, "Đăng nhập...", Toast.LENGTH_SHORT).show()
-                    context.startActivity(Intent(context, HomeActivity::class.java))
+                    loginError = null
+                    if (email.isBlank() || password.isBlank()) {
+                        loginError = "Email và mật khẩu không được trống"
+                        return@Button
+                    }
+                    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                        loginError = "Email không hợp lệ"
+                        return@Button
+                    }
+                    isLoading = true
+                    auth.signInWithEmailAndPassword(email.trim(), password).addOnCompleteListener { task ->
+                        isLoading = false
+                        if (task.isSuccessful) {
+                            val user = auth.currentUser
+                            val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
+                            val avatar = user?.photoUrl?.toString() ?: ""
+                            context.startActivity(
+                                Intent(context, HomeActivity::class.java).apply {
+                                    putExtra("userName", name)
+                                    putExtra("avatarUrl", avatar)
+                                }
+                            )
+                        } else {
+                            loginError = task.exception?.localizedMessage ?: "Đăng nhập thất bại"
+                        }
+                    }
                 },
                 shape = RoundedCornerShape(40.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA5F2C2)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
+                modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text("Login", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLoading) "Đang đăng nhập..." else "Login", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // OR divider
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
                 Text("  or sign in with  ", color = Color.White)
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
@@ -237,43 +246,27 @@ fun LoginScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Google Button
             OutlinedButton(
                 onClick = {
                     if (activity == null) {
                         Toast.makeText(context, "Context error", Toast.LENGTH_SHORT).show()
                     } else {
-                        val intent = googleSignInClient.signInIntent
-                        googleSignInLauncher.launch(intent)
+                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
                     }
                 },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
+                modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_google),
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
-                )
+                Image(painter = painterResource(id = R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(if (isLoading) "Signing in..." else "Continue with Google", color = Color.Gray)
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Create account
-            TextButton(onClick = {
-                context.startActivity(Intent(context, RegisterActivity::class.java))
-            }) {
-                Text(
-                    "Create an account",
-                    color = Color(0xFFFFC107),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+            TextButton(onClick = { context.startActivity(Intent(context, RegisterActivity::class.java)) }) {
+                Text("Create an account", color = Color(0xFFFFC107), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -106,4 +106,7 @@ dependencies {
     implementation("org.maplibre.gl:android-plugin-annotation-v9:2.0.2")
     // OkHttp for networking used to call OSRM routing service
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
+
+    // DataStore for simple persistence
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

@@ -93,7 +93,7 @@ class MainActivity : ComponentActivity() {
                                 com.map.buscity.ui.routes.BusRouteDetailScreen(routeId = id, onBack = { navController.navigateUp() })
                             }
                             composable("account") {
-                                AccountScreen(navController = navController, userName = "Người dùng", avatarUrl = null)
+                                AccountScreen(navController = navController)
                             }
                         }
                     }

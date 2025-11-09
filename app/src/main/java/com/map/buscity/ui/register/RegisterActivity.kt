@@ -40,6 +40,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.map.buscity.R
 import com.map.buscity.ui.login.LoginActivity
 import com.map.buscity.ui.account.HomeActivity
@@ -224,14 +225,36 @@ fun RegisterScreen() {
             // Sign up button
             Button(
                 onClick = {
-                    if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && agreeTerms) {
-                        val intent = Intent(context, HomeActivity::class.java)
-                        intent.putExtra("userName", name.ifEmpty { email.substringBefore("@") })
-                        intent.putExtra("avatarUrl", "")
-                        context.startActivity(intent)
-                    } else {
+                    if (name.isBlank() || email.isBlank() || password.isBlank() || !agreeTerms) {
                         Toast.makeText(context, "Vui lòng nhập đầy đủ thông tin và đồng ý điều khoản", Toast.LENGTH_SHORT).show()
+                        return@Button
                     }
+                    if (password.length < 6) {
+                        Toast.makeText(context, "Mật khẩu phải từ 6 ký tự", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    isLoading = true
+                    auth.createUserWithEmailAndPassword(email.trim(), password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                // Cập nhật displayName = name
+                                val profile = UserProfileChangeRequest.Builder()
+                                    .setDisplayName(name.trim())
+                                    .build()
+                                auth.currentUser?.updateProfile(profile)?.addOnCompleteListener {
+                                    isLoading = false
+                                    val intent = Intent(context, HomeActivity::class.java).apply {
+                                        putExtra("userName", name.ifEmpty { email.substringBefore("@") })
+                                        putExtra("avatarUrl", auth.currentUser?.photoUrl?.toString() ?: "")
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            } else {
+                                isLoading = false
+                                val msg = task.exception?.localizedMessage ?: "Đăng ký thất bại"
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            }
+                        }
                 },
                 shape = RoundedCornerShape(40.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA5F2C2)),
@@ -239,7 +262,7 @@ fun RegisterScreen() {
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                Text("Sign up", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLoading) "Đang tạo..." else "Sign up", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
