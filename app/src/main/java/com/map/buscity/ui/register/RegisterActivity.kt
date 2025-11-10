@@ -126,14 +126,15 @@ fun RegisterScreen() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Title
+            // Tiêu đề & mô tả
             Text(
-                text = "Create an account",
+                text = "Tạo tài khoản",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Text(
-                text = "Welcome back to the app!",
+                text = "Chào mừng bạn đến với ứng dụng!",
                 fontSize = 15.sp,
                 color = Color(0xFFE8F5E9),
                 modifier = Modifier.padding(bottom = 28.dp)
@@ -143,8 +144,8 @@ fun RegisterScreen() {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                placeholder = { Text("John Doe", color = Color.Gray) },
-                label = { Text("Name") },
+                placeholder = { Text("Họ và tên", color = Color.Gray) },
+                label = { Text("Họ và tên") },
                 leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                 singleLine = true,
                 shape = RoundedCornerShape(30.dp),
@@ -162,8 +163,8 @@ fun RegisterScreen() {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = { Text("hello@example.com", color = Color.Gray) },
-                label = { Text("Email Address") },
+                placeholder = { Text("email@example.com", color = Color.Gray) },
+                label = { Text("Email") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
@@ -182,12 +183,12 @@ fun RegisterScreen() {
                 value = password,
                 onValueChange = { password = it },
                 placeholder = { Text("********", color = Color.Gray) },
-                label = { Text("Password") },
+                label = { Text("Mật khẩu") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(image, contentDescription = "Toggle Password")
+                        Icon(image, contentDescription = "Hiện/ẩn mật khẩu")
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -215,7 +216,7 @@ fun RegisterScreen() {
                     colors = CheckboxDefaults.colors(checkedColor = Color(0xFFFFC107))
                 )
                 Text(
-                    text = "By continuing, you agree to our terms of service.",
+                    text = "Tiếp tục đồng nghĩa với việc bạn đồng ý điều khoản sử dụng.",
                     color = Color.White,
                     fontSize = 13.sp,
                     modifier = Modifier.padding(start = 4.dp)
@@ -262,7 +263,7 @@ fun RegisterScreen() {
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                Text(if (isLoading) "Đang tạo..." else "Sign up", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLoading) "Đang tạo..." else "Đăng ký", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -273,7 +274,7 @@ fun RegisterScreen() {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
-                Text("  or sign up with  ", color = Color.White)
+                Text("  hoặc đăng ký bằng  ", color = Color.White)
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
             }
 
@@ -301,7 +302,7 @@ fun RegisterScreen() {
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isLoading) "Signing in..." else "Continue with Google", color = Color.Gray)
+                Text(if (isLoading) "Đang đăng nhập..." else "Đăng ký bằng Google", color = Color.Gray)
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -312,15 +313,11 @@ fun RegisterScreen() {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Already have an account? ", color = Color.White)
+                Text("Đã có tài khoản? ", color = Color.White)
                 TextButton(onClick = {
                     context.startActivity(Intent(context, LoginActivity::class.java))
                 }) {
-                    Text(
-                        text = "Sign in here",
-                        color = Color(0xFFFFC107),
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = "Đăng nhập tại đây", color = Color(0xFFFFC107), fontWeight = FontWeight.Bold)
                 }
             }
         }

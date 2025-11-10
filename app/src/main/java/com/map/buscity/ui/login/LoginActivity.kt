@@ -140,14 +140,15 @@ fun LoginScreen() {
                 .padding(horizontal = 32.dp, vertical = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = "Login", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = "Welcome back to the app!", fontSize = 15.sp, color = Color(0xFFE8F5E9), modifier = Modifier.padding(bottom = 28.dp))
+            // Tiêu đề & mô tả
+            Text(text = "Đăng nhập", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = "Chào mừng bạn quay lại!", fontSize = 15.sp, color = Color(0xFFE8F5E9), modifier = Modifier.padding(bottom = 28.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                placeholder = { Text("hello@example.com", color = Color.Gray) },
-                label = { Text("Email Address") },
+                placeholder = { Text("email@example.com", color = Color.Gray) },
+                label = { Text("Email") },
                 leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
@@ -166,7 +167,7 @@ fun LoginScreen() {
                 value = password,
                 onValueChange = { password = it },
                 placeholder = { Text("********", color = Color.Gray) },
-                label = { Text("Password") },
+                label = { Text("Mật khẩu") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
                     val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
@@ -197,12 +198,12 @@ fun LoginScreen() {
                         onCheckedChange = { keepSignedIn = it },
                         colors = CheckboxDefaults.colors(checkedColor = Color(0xFF4CAF50))
                     )
-                    Text("Keep me signed in", color = Color.White)
+                    Text("Ghi nhớ đăng nhập", color = Color.White)
                 }
                 TextButton(onClick = {
                     resetEmail = email
                     showResetDialog = true
-                }) { Text("Forgot Password?", color = Color.White) }
+                }) { Text("Quên mật khẩu?", color = Color.White) }
             }
 
             if (loginError != null) {
@@ -245,14 +246,14 @@ fun LoginScreen() {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA5F2C2)),
                 modifier = Modifier.fillMaxWidth().height(52.dp)
             ) {
-                Text(if (isLoading) "Đang đăng nhập..." else "Login", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(if (isLoading) "Đang đăng nhập..." else "Đăng nhập", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
-                Text("  or sign in with  ", color = Color.White)
+                Text("  hoặc đăng nhập bằng  ", color = Color.White)
                 Divider(modifier = Modifier.weight(1f), color = Color.White.copy(0.4f))
             }
 
@@ -275,13 +276,13 @@ fun LoginScreen() {
             ) {
                 Image(painter = painterResource(id = R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (isLoading) "Signing in..." else "Continue with Google", color = Color.Gray)
+                Text(if (isLoading) "Đang đăng nhập..." else "Đăng nhập bằng Google", color = Color.Gray)
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
             TextButton(onClick = { context.startActivity(Intent(context, RegisterActivity::class.java)) }) {
-                Text("Create an account", color = Color(0xFFFFC107), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text("Tạo tài khoản", color = Color(0xFFFFC107), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
