@@ -42,6 +42,8 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.map.buscity.R
 import com.map.buscity.ui.register.RegisterActivity
 import com.map.buscity.ui.account.HomeActivity
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -76,13 +78,29 @@ fun LoginScreen() {
     var resetEmail by remember { mutableStateOf("") }
     var resetSending by remember { mutableStateOf(false) }
 
+    // Hàm helper: chuyển mã lỗi Google thành thông báo tiếng Việt dễ hiểu
+    fun mapGoogleError(code: Int, raw: String?): String {
+        return when (code) {
+            CommonStatusCodes.CANCELED -> "Bạn đã hủy đăng nhập Google"
+            CommonStatusCodes.NETWORK_ERROR -> "Lỗi mạng, vui lòng kiểm tra kết nối"
+            GoogleSignInStatusCodes.SIGN_IN_FAILED -> "Đăng nhập Google thất bại. Thường do chưa cấu hình SHA-1/SHA-256 hoặc OAuth chưa công bố/tester chưa được thêm"
+            GoogleSignInStatusCodes.SIGN_IN_REQUIRED -> "Vui lòng chọn tài khoản Google để tiếp tục"
+            else -> raw ?: "Không thể đăng nhập Google (mã $code)"
+        }
+    }
+
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(ApiException::class.java)
-            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
+            val token = account.idToken
+            if (token.isNullOrBlank()) {
+                Toast.makeText(context, "Thiếu web client ID hoặc SHA-1/SHA-256 chưa khai báo trong Firebase", Toast.LENGTH_LONG).show()
+                return@rememberLauncherForActivityResult
+            }
+            val credential = GoogleAuthProvider.getCredential(token, null)
             isLoading = true
             auth.signInWithCredential(credential).addOnCompleteListener { t ->
                 isLoading = false
@@ -97,11 +115,12 @@ fun LoginScreen() {
                         }
                     )
                 } else {
-                    Toast.makeText(context, t.exception?.localizedMessage ?: "Google sign-in failed", Toast.LENGTH_SHORT).show()
+                    val msg = t.exception?.localizedMessage ?: "Google sign-in failed"
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                 }
             }
         } catch (e: ApiException) {
-            Toast.makeText(context, e.localizedMessage ?: "Google sign-in cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, mapGoogleError(e.statusCode, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -244,7 +263,10 @@ fun LoginScreen() {
                     if (activity == null) {
                         Toast.makeText(context, "Context error", Toast.LENGTH_SHORT).show()
                     } else {
-                        googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        // Dọn phiên Google trước khi đăng nhập để tránh dính tài khoản cũ
+                        googleSignInClient.signOut().addOnCompleteListener {
+                            googleSignInLauncher.launch(googleSignInClient.signInIntent)
+                        }
                     }
                 },
                 shape = RoundedCornerShape(50),
