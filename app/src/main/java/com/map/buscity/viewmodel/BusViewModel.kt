@@ -23,6 +23,7 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = BusRepository(db.busRouteDao())
 
     private val stopDao = db.busStopDao()
+    private val stopReturnDao = db.busStopReturnDao()
     private val routeCacheDao = db.routeCacheDao()
 
     // Simple in-memory cache for computed polylines per routeNumber
@@ -134,6 +135,13 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                 val sampleStops = com.map.buscity.data.sample.SampleBusStopData.getSampleStops()
                 stopDao.insertStops(sampleStops)
             }
+
+            // Insert sample return stops if none exist
+            val totalReturnStops = stopReturnDao.countForRoute("01")
+            if (totalReturnStops == 0) {
+                val sampleReturnStops = com.map.buscity.data.sample.SampleBusStopReturnData.getSampleReturnStops()
+                stopReturnDao.insertStops(sampleReturnStops)
+            }
         }
     }
 
@@ -147,21 +155,32 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
 
     fun getStopsForRoute(routeNumber: String) = stopDao.getStopsForRoute(routeNumber)
 
+    fun getReturnStopsForRoute(routeNumber: String) = stopReturnDao.getReturnStopsForRoute(routeNumber)
+
     /**
      * Fetch a routed polyline (list of LatLng) for the provided stops.
      * Uses in-memory cache keyed by stops.first().routeNumber when available.
      * Falls back to straight-line coordinates when routing fails.
      */
-    suspend fun fetchRouteLatLngsForStops(stops: List<BusStop>): List<LatLng> {
+    suspend fun fetchRouteLatLngsForStops(stops: List<BusStop>, isReturn: Boolean = false): List<LatLng> {
         if (stops.isEmpty()) return emptyList()
 
         val routeNumber = stops.first().routeNumber
+        // use a cache key that includes direction so forward/return don't share the same cached polyline
+        val cacheKey = "$routeNumber:${if (isReturn) "R" else "F"}"
         // 1) check in-memory cache
-        routeCache[routeNumber]?.let { return it }
+        routeCache[cacheKey]?.let { return it }
 
         // 2) check persistent Room cache
         try {
-            val cached = withContext(Dispatchers.IO) { routeCacheDao.getByRouteNumber(routeNumber) }
+            // Remove legacy cache entries keyed by plain routeNumber (without direction)
+            try {
+                withContext(Dispatchers.IO) { routeCacheDao.delete(routeNumber) }
+            } catch (_: Exception) {
+                // ignore if delete fails
+            }
+
+            val cached = withContext(Dispatchers.IO) { routeCacheDao.getByRouteNumber(cacheKey) }
             if (cached != null) {
                 // parse cached geoJson (array of {lat, lon})
                 val arr = JSONObject("{\"a\":${cached.geoJson}}").getJSONArray("a")
@@ -172,7 +191,7 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                     val lon = obj.getDouble("lon")
                     parsed.add(LatLng(lat, lon))
                 }
-                routeCache[routeNumber] = parsed.toList()
+                routeCache[cacheKey] = parsed.toList()
                 return parsed.toList()
             }
         } catch (e: Exception) {
@@ -233,9 +252,9 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                 i += chunkSize - 1 // overlap one point with next chunk to keep continuity
             }
 
-            // Cache in-memory and persist to Room
+            // Cache in-memory and persist to Room (keyed by cacheKey so forward/return differ)
             val finalList = result.toList()
-            routeCache[routeNumber] = finalList
+            routeCache[cacheKey] = finalList
             try {
                 val jsonArr = org.json.JSONArray()
                 finalList.forEach { ll ->
@@ -246,7 +265,7 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 val geoJsonString = jsonArr.toString()
                 withContext(Dispatchers.IO) {
-                    routeCacheDao.insert(com.map.buscity.data.RouteCache(routeNumber = routeNumber, geoJson = geoJsonString))
+                    routeCacheDao.insert(com.map.buscity.data.RouteCache(routeNumber = cacheKey, geoJson = geoJsonString))
                 }
             } catch (e: Exception) {
                 // ignore persistence errors
@@ -256,7 +275,7 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             // On any failure, fallback to straight lines between stops
             val fallback = sorted.map { LatLng(it.lat, it.lng) }
-            routeCache[routeNumber] = fallback
+            routeCache[cacheKey] = fallback
             return fallback
         }
     }
