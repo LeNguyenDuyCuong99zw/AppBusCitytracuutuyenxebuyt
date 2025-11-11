@@ -31,6 +31,9 @@ import androidx.compose.ui.platform.LocalContext
 import com.map.buscity.data.BusRoute
 import com.map.buscity.viewmodel.BusViewModel
 import com.map.buscity.viewmodel.BusViewModelFactory
+import com.map.buscity.ui.favorite.FavoriteRoute
+import com.map.buscity.ui.favorite.FavoritesRepository
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -150,8 +153,12 @@ fun BusRouteScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BusRouteItem(route: BusRoute) {
-    var isFavorite by remember { mutableStateOf(false) }
-    
+    // observe repository state so UI updates when favorites change elsewhere
+    val isFavorite by remember { derivedStateOf { FavoritesRepository.isFavorite(route.routeNumber) } }
+
+    // get context here (inside a @Composable) and reuse inside onClick
+    val ctx = LocalContext.current
+     
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -264,15 +271,29 @@ fun BusRouteItem(route: BusRoute) {
                     )
                 }
                 IconButton(
-                    onClick = { isFavorite = !isFavorite },
-                    modifier = Modifier.size(24.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (isFavorite) Color(0xFF2ECC71) else Color.Black
-                    )
-                }
+                    onClick = {
+                        // đảm bảo SharedPreferences đã init trước khi toggle
+                        FavoritesRepository.init(ctx)
+ 
+                        // lưu thêm thông tin hiển thị (routeName, time, price)
+                        val fav = FavoriteRoute(
+                            id = route.routeNumber,
+                            title = "Tuyến xe ${route.routeNumber}",
+                            type = "TUYẾN",
+                            fromStop = route.routeName,
+                            timeRange = "${route.startTime} - ${route.endTime}",
+                            price = "${route.price} VND"
+                        )
+                        FavoritesRepository.toggle(fav)
+                    },
+                     modifier = Modifier.size(24.dp)
+                 ) {
+                     Icon(
+                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                         contentDescription = "Favorite",
+                         tint = if (isFavorite) Color(0xFF2ECC71) else Color.Black
+                     )
+                 }
             }
         }
     }

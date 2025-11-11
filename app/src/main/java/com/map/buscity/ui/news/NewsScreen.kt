@@ -138,6 +138,7 @@ fun NewsScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(70.dp)
+                    .background(Color(0xFF63EE83)),
             ) {
                 // Background xanh
                 Box(
@@ -148,7 +149,7 @@ fun NewsScreen(navController: NavController) {
 
                 // Hình backgroundgreen.png phủ header
                 Image(
-                    painter = painterResource(id = R.drawable.backgroundgreen),
+                    painter = painterResource(id = R.drawable.buscenter1),
                     contentDescription = "Back Image",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
