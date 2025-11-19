@@ -109,6 +109,9 @@ dependencies {
     // OkHttp for networking used to call OSRM routing service
     implementation("com.squareup.okhttp3:okhttp:4.11.0")
 
+    // Fused Location Provider (Play Services) for better location accuracy & battery
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
     // DataStore for simple persistence
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 }
