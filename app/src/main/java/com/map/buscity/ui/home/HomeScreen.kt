@@ -223,6 +223,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                         .clip(RoundedCornerShape(18.dp))
                         .background(Color.White)
                         .border(width = 2.dp, color = Color(0xFF63EE83), shape = RoundedCornerShape(18.dp))
+                        .clickable { navController.navigate("search") }
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
