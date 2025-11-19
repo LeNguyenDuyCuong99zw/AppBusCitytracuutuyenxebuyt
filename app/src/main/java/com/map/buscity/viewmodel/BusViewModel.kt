@@ -99,6 +99,30 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                     rating = 4.2f
                 ),
                 BusRoute(
+                    routeNumber = "09",
+                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
+                    startTime = "04:40",
+                    endTime = "20:30",
+                    price = 7000,
+                    rating = 4.2f
+                ),
+                BusRoute(
+                    routeNumber = "10",
+                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
+                    startTime = "04:40",
+                    endTime = "20:30",
+                    price = 7000,
+                    rating = 4.2f
+                ),
+                BusRoute(
+                    routeNumber = "18",
+                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
+                    startTime = "04:40",
+                    endTime = "20:30",
+                    price = 7000,
+                    rating = 4.2f
+                ),
+                BusRoute(
                     routeNumber = "48",
                     routeName = "Bến xe buýt Tân Phú - Chợ Hiệp Thành",
                     startTime = "04:30",
@@ -202,54 +226,113 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
         val sorted = stops.sortedBy { it.stopOrder }
 
         // If too many waypoints, break into chunks to avoid URL length / waypoint limits
-        val chunkSize = 20 // reasonable default; adjust if needed
+        // Choose chunk size dynamically based on total stops to reduce risk of long URL or server rejecting request
+        var chunkSize = when {
+            sorted.size > 60 -> 10
+            sorted.size > 40 -> 12
+            sorted.size > 30 -> 15
+            else -> 20
+        }
+
         val result = mutableListOf<LatLng>()
 
         try {
-            var firstChunk = true
-            var i = 0
-            while (i < sorted.size) {
-                val end = kotlin.math.min(i + chunkSize, sorted.size)
-                val chunk = sorted.subList(i, end)
+            var attemptReduce = 0
+            var firstChunkGlobal = true
+            // We'll allow a couple reductions of chunkSize if the server returns URI-too-long / 414 or similar
+            while (true) {
+                result.clear()
+                var firstChunk = firstChunkGlobal
+                var i = 0
+                var failedDueToUrl = false
 
-                // Build OSRM coord string: lon,lat;lon,lat;...
-                val coordPairs = chunk.joinToString(";") { "${it.lng},${it.lat}" }
-                val osrmUrl = "https://router.project-osrm.org/route/v1/driving/$coordPairs?overview=full&geometries=geojson"
+                while (i < sorted.size) {
+                    val end = kotlin.math.min(i + chunkSize, sorted.size)
+                    val chunk = sorted.subList(i, end)
 
-                val request = Request.Builder().url(osrmUrl).get().build()
+                    // Build OSRM coord string: lon,lat;lon,lat;...
+                    val coordPairs = chunk.joinToString(";") { "${it.lng},${it.lat}" }
+                    val osrmUrl = "https://router.project-osrm.org/route/v1/driving/$coordPairs?overview=full&geometries=geojson"
+                    val request = Request.Builder().url(osrmUrl).get().build()
 
-                val bodyString = withContext(Dispatchers.IO) {
-                    val resp = httpClient.newCall(request).execute()
-                    if (!resp.isSuccessful) {
-                        resp.close()
-                        throw Exception("Routing request failed: ${'$'}{resp.code}")
-                    }
-                    resp.body?.string() ?: run {
-                        resp.close()
-                        throw Exception("Empty response body from routing service")
-                    }
-                }
-
-                val json = JSONObject(bodyString)
-                val routes = json.getJSONArray("routes")
-                if (routes.length() > 0) {
-                    val geometry = routes.getJSONObject(0).getJSONObject("geometry")
-                    val coords = geometry.getJSONArray("coordinates")
-                    // Append coords; each coord is [lon, lat]
-                    for (j in 0 until coords.length()) {
-                        val pair = coords.getJSONArray(j)
-                        val lon = pair.getDouble(0)
-                        val lat = pair.getDouble(1)
-                        val latlng = LatLng(lat, lon)
-                        // Avoid duplicating seam points between chunks
-                        if (firstChunk || result.isEmpty() || result.last() != latlng) {
-                            result.add(latlng)
+                    // Per-chunk retry with small backoff
+                    var chunkSuccess = false
+                    var retries = 0
+                    while (retries < 2 && !chunkSuccess) {
+                        val bodyString = try {
+                            withContext(Dispatchers.IO) {
+                                val resp = httpClient.newCall(request).execute()
+                                if (!resp.isSuccessful) {
+                                    val code = resp.code
+                                    resp.close()
+                                    throw Exception("Routing request failed: ${'$'}code")
+                                }
+                                resp.body?.string() ?: run {
+                                    resp.close()
+                                    throw Exception("Empty response body from routing service")
+                                }
+                            }
+                        } catch (ex: Exception) {
+                            // Detect URI-too-long or similar server rejections and mark for chunk size reduction
+                            val msg = ex.message ?: ""
+                            if (msg.contains("414") || msg.contains("URI") || msg.contains("Too Long", ignoreCase = true) || msg.contains("Request-URI", ignoreCase = true)) {
+                                failedDueToUrl = true
+                                break
+                            }
+                            // otherwise try once more after short delay
+                            retries++
+                            if (retries < 2) {
+                                try { kotlinx.coroutines.delay(300) } catch (_: Exception) { }
+                                continue
+                            } else {
+                                throw ex
+                            }
                         }
+
+                        // parse bodyString
+                        val json = JSONObject(bodyString)
+                        val routes = json.getJSONArray("routes")
+                        if (routes.length() > 0) {
+                            val geometry = routes.getJSONObject(0).getJSONObject("geometry")
+                            val coords = geometry.getJSONArray("coordinates")
+                            // Append coords; each coord is [lon, lat]
+                            for (j in 0 until coords.length()) {
+                                val pair = coords.getJSONArray(j)
+                                val lon = pair.getDouble(0)
+                                val lat = pair.getDouble(1)
+                                val latlng = LatLng(lat, lon)
+                                // Avoid duplicating seam points between chunks
+                                if (firstChunk || result.isEmpty() || result.last() != latlng) {
+                                    result.add(latlng)
+                                }
+                            }
+                        }
+
+                        chunkSuccess = true
                     }
+
+                    if (failedDueToUrl) break
+
+                    firstChunk = false
+                    i += chunkSize - 1 // overlap one point with next chunk to keep continuity
                 }
 
-                firstChunk = false
-                i += chunkSize - 1 // overlap one point with next chunk to keep continuity
+                if (!failedDueToUrl) {
+                    // success for all chunks
+                    break
+                }
+
+                // Reduce chunk size and retry (avoid infinite loop)
+                attemptReduce++
+                if (attemptReduce > 3 || chunkSize <= 6) {
+                    // give up and fallback
+                    throw Exception("Routing failed due to URL/waypoint limits after retries")
+                }
+                // heuristically reduce chunk size
+                chunkSize = kotlin.math.max(6, chunkSize / 2)
+                // small backoff before retrying whole routing
+                try { kotlinx.coroutines.delay(500) } catch (_: Exception) { }
+                firstChunkGlobal = false
             }
 
             // Cache in-memory and persist to Room (keyed by cacheKey so forward/return differ)
