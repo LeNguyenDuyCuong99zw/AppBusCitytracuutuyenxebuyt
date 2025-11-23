@@ -1,21 +1,28 @@
 package com.map.buscity.ui.favorite
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -24,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.map.buscity.R
@@ -34,7 +43,9 @@ import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONException
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.alpha
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +70,7 @@ fun FavoriteScreen(navController: NavController) {
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
-                val selectedColor = Color(0xFF4CAF50)
+                val selectedColor = Color(0xFF2E7D32)
                 val unselectedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
                 NavigationBarItem(
@@ -101,7 +112,7 @@ fun FavoriteScreen(navController: NavController) {
                 NavigationBarItem(
                     selected = isFavorite,
                     onClick = { /* đang ở favorite */ },
-                    icon = { Icon(Icons.Outlined.FavoriteBorder, contentDescription = "Yêu thích", tint = if (isFavorite) selectedColor else unselectedColor) },
+                    icon = { Icon(if (isFavorite) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder, contentDescription = "Yêu thích", tint = if (isFavorite) selectedColor else unselectedColor) },
                     label = { Text("Yêu thích", fontSize = 11.sp, color = if (isFavorite) selectedColor else unselectedColor) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = selectedColor,
@@ -132,74 +143,91 @@ fun FavoriteScreen(navController: NavController) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Header: background xanh + back1.png + text nổi
+            // Modern header: gradient + image overlay + centered title
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(70.dp)
-                    .background(Color(0xFF63EE83)),
+                    .height(140.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(Color(0xFF73C991), Color(0xFF2E7D32))
+                        )
+                    )
             ) {
-                // Background xanh
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .align(Alignment.TopStart)
-                )
-
-                // back1.png phủ toàn bộ header
                 Image(
                     painter = painterResource(id = R.drawable.buscenter1),
                     contentDescription = "Back Image",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(0.12f),
+                    contentScale = ContentScale.Crop
                 )
 
-                // Text nổi trên hình với shadow
-                Text(
-                    text = "Danh sách yêu thích",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.align(Alignment.Center),
-                    style = TextStyle(
-                        shadow = Shadow(
-                            color = Color.Black.copy(alpha = 0.5f),
-                            offset = Offset(2f, 2f),
-                            blurRadius = 4f
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Danh sách yêu thích",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            shadow = Shadow(
+                                color = Color.Black.copy(alpha = 0.35f),
+                                offset = Offset(1f, 1f),
+                                blurRadius = 3f
+                            )
                         )
                     )
-                )
-            }
-
-            // Tab TUYẾN / TRẠM DỪNG
-            // TabRow với indicator màu xanh lá
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                contentColor = Color(0xFF63EE83),
-                indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
-                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = Color(0xFF63EE83) // màu xanh lá
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Quản lý tuyến và trạm dừng bạn thường dùng",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        textAlign = TextAlign.Center
                     )
                 }
+            }
+
+            // Tab TUYẾN / TRẠM DỪNG - modern slim indicator
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = Color(0xFF2E7D32),
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier
+                            .tabIndicatorOffset(tabPositions[selectedTab])
+                            .height(3.dp)
+                            .padding(horizontal = 24.dp),
+                        color = Color(0xFF2E7D32)
+                    )
+                },
+                divider = {}
             ) {
                 tabs.forEachIndexed { index, text ->
                     Tab(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index }
+                        onClick = { selectedTab = index },
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     ) {
                         Text(
                             text = text,
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(vertical = 12.dp),
-                            color = if (selectedTab == index) Color(0xFF63EE83) else Color.Gray
+                            fontSize = 15.sp,
+                            modifier = Modifier
+                                .padding(vertical = 10.dp)
+                                .animateContentSize(),
+                            color = if (selectedTab == index) Color(0xFF2E7D32) else Color.Gray,
+                            fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Normal
                         )
                     }
                 }
             }
-
 
             // Nội dung tab
             when (selectedTab) {
@@ -215,16 +243,25 @@ fun EmptyGrid(tabName: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "Bạn chưa có $tabName yêu thích",
-            color = Color.Gray,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Outlined.FavoriteBorder,
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(48.dp)
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Bạn chưa có $tabName yêu thích",
+                color = Color.Gray,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -315,6 +352,76 @@ object FavoritesRepository {
 }
 
 @Composable
+fun FavoriteCard(item: FavoriteRoute, onRemove: (String) -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp)
+            .shadow(4.dp, RoundedCornerShape(12.dp))
+            .animateContentSize(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Leading avatar / badge
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFFB2FF59), Color(0xFF4CAF50))
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = item.type.take(1),
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = item.title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                if (item.fromStop.isNotEmpty() || item.toStop.isNotEmpty()) {
+                    Text(text = "${item.fromStop} — ${item.toStop}", color = Color.Gray, fontSize = 13.sp, maxLines = 1)
+                } else {
+                    Text(text = item.type, color = Color.Gray, fontSize = 13.sp)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (item.timeRange.isNotEmpty()) {
+                        Text(text = item.timeRange, color = Color(0xFF444444), fontSize = 13.sp)
+                    }
+                    if (item.price.isNotEmpty()) {
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(text = item.price, color = Color(0xFF1976D2), fontSize = 13.sp)
+                    }
+                }
+            }
+
+            IconButton(onClick = { onRemove(item.id) }) {
+                Icon(
+                    imageVector = Icons.Outlined.Favorite,
+                    contentDescription = "Remove favorite",
+                    tint = Color(0xFFE53935)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun FavoriteList(tabName: String) {
     // đọc trực tiếp từ snapshot-state list để Compose tái compose ngay khi _items thay đổi
     val list = FavoritesRepository.items.filter { it.type == tabName }
@@ -333,49 +440,8 @@ fun FavoriteList(tabName: String) {
         horizontalArrangement = Arrangement.Center
     ) {
         // disambiguate overload by naming the parameter so compiler picks the List<T> overload
-        items(items = list) { item ->
-             Card(
-                 modifier = Modifier
-                     .fillMaxWidth()
-                     .padding(vertical = 8.dp),
-                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                 shape = RoundedCornerShape(12.dp),
-                 colors = CardDefaults.cardColors(containerColor = Color.White)
-             ) {
-                 Row(
-                     modifier = Modifier
-                         .fillMaxWidth()
-                         .padding(12.dp),
-                     verticalAlignment = Alignment.CenterVertically
-                 ) {
-                     Column(modifier = Modifier.weight(1f)) {
-                         Text(text = item.title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                         Spacer(modifier = Modifier.height(4.dp))
-                         if (item.fromStop.isNotEmpty() || item.toStop.isNotEmpty()) {
-                             Text(text = "${item.fromStop}  ${item.toStop}", color = Color.Gray, fontSize = 13.sp)
-                         } else {
-                             Text(text = item.type, color = Color.Gray, fontSize = 13.sp)
-                         }
-                         Spacer(modifier = Modifier.height(8.dp))
-                         Row(verticalAlignment = Alignment.CenterVertically) {
-                             if (item.timeRange.isNotEmpty()) {
-                                 Text(text = item.timeRange, color = Color(0xFF444444), fontSize = 13.sp)
-                             }
-                             if (item.price.isNotEmpty()) {
-                                 Spacer(modifier = Modifier.width(12.dp))
-                                 Text(text = item.price, color = Color(0xFF1976D2), fontSize = 13.sp)
-                             }
-                         }
-                     }
-                     IconButton(onClick = { FavoritesRepository.remove(item.id) }) {
-                         Icon(
-                             imageVector = Icons.Outlined.FavoriteBorder,
-                             contentDescription = "Remove favorite",
-                             tint = Color.Red
-                         )
-                     }
-                 }
-             }
+        items(items = list, key = { it.id }) { item ->
+            FavoriteCard(item = item, onRemove = { FavoritesRepository.remove(it) })
         }
     }
 }
