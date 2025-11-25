@@ -61,6 +61,7 @@ import org.maplibre.android.geometry.LatLng
 import kotlin.math.*
 import android.os.Handler
 import android.content.Context
+import com.map.buscity.util.StopUtils
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.LocationCallback
@@ -434,12 +435,36 @@ fun MapScreen(
 
 		lifecycleOwner.lifecycle.addObserver(observer)
 
-		onDispose {
-			lifecycleOwner.lifecycle.removeObserver(observer)
-			// In case Compose disposes before Activity is destroyed
-			mapView?.onStop()
-			mapView?.onDestroy()
-		}
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            // Best-effort: clear map annotations/listeners so nothing leaks to other screens
+            try {
+                mapView?.getMapAsync { ml ->
+                    try { ml.clear() } catch (_: Exception) {}
+                }
+            } catch (_: Exception) {}
+
+            // Clear persisted/in-memory route cache for this route when leaving the screen
+            try {
+                if (!routeNumber.isNullOrBlank()) {
+                    // clear both direction-keyed cache and legacy plain key to be safe
+                    val forwardKey = "$routeNumber:F"
+                    val returnKey = "$routeNumber:R"
+                    viewModel.clearCachedRoute(forwardKey)
+                    viewModel.clearCachedRoute(returnKey)
+                    viewModel.clearCachedRoute(routeNumber)
+                } else {
+                    // if no specific route, consider clearing all cached route data
+                    // NOTE: be conservative — perform only if necessary. Here we do not call blanket clear.
+                }
+            } catch (_: Exception) {}
+
+            // In case Compose disposes before Activity is destroyed
+            mapView?.onStop()
+            mapView?.onDestroy()
+            // drop local refs to help GC
+            mapViewRef = null
+        }
 	}
 
     // Small debug UI + Compose wrapper for the MapView. We capture errors in `errorMsg`
@@ -807,45 +832,57 @@ fun MapScreen(
                                         } catch (_: Exception) { }
 
                                         // Draw main route polyline first (with fade-in animation)
-                                        if (routeLatLngs.isNotEmpty()) {
-                                            addPolylineWithFade(mapLibreMap, routeLatLngs, routeColorInt, width = 6f)
+                                            if (routeLatLngs.isNotEmpty()) {
+                                                addPolylineWithFade(mapLibreMap, routeLatLngs, routeColorInt, width = 6f)
 
-                                            // Add markers and connector lines for each stop
-                                            stops.forEach { stop ->
-                                                val stopLatLng = LatLng(stop.lat, stop.lng)
+                                                // Validate, dedupe and sort stops before drawing markers/connectors
+                                                val stopsClean = StopUtils.dedupeStopsByIdOrCoords(StopUtils.validStops(stops))
+                                                val stopsSorted = StopUtils.sortByOrder(stopsClean)
 
-                                                // Find closest point on route to this stop
-                                                val closestPoint = findClosestPointOnRoute(stopLatLng, routeLatLngs)
+                                                // Add markers and connector lines for each stop. Draw a connector
+                                                // only when the stop is sufficiently far from the route to avoid
+                                                // many overlapping short connectors that look like "spokes".
+                                                val CONNECTOR_THRESHOLD_METERS = 40.0
+                                                stopsSorted.forEach { stop ->
+                                                    val stopLatLng = LatLng(stop.lat, stop.lng)
 
-                                                // Draw connector line from route to marker
+                                                    // Find closest point on route to this stop
+                                                    val closestPoint = findClosestPointOnRoute(stopLatLng, routeLatLngs)
+
+                                                    // Compute distance in meters between stop and closest point on route
+                                                    val distMeters = try { haversineDistanceKm(closestPoint, stopLatLng) * 1000.0 } catch (_: Exception) { 0.0 }
+
+                                                    // Draw connector line only if the stop is meaningfully off-route
+                                                    if (distMeters > CONNECTOR_THRESHOLD_METERS) {
+                                                        mapLibreMap.addPolyline(
+                                                            org.maplibre.android.annotations.PolylineOptions()
+                                                                .add(closestPoint)
+                                                                .add(stopLatLng)
+                                                                .color(routeColorInt)
+                                                                .width(3f) // Thinner than main route
+                                                        )
+                                                    }
+
+                                                    // Choose icon depending on current zoom (useLogoIcon may be updated by camera listener)
+                                                    val chosenIcon = if (useLogoIcon) logoIcon else dotIcon
+                                                    // Add marker above connector line (always add marker so list/map match)
+                                                    mapLibreMap.addMarker(
+                                                        org.maplibre.android.annotations.MarkerOptions()
+                                                            .position(stopLatLng)
+                                                            .title(stop.stopName)
+                                                            .icon(chosenIcon)
+                                                    )
+                                                }
+                                            } else {
+                                                // If routeLatLngs not ready, fall back to straight line using validated stops
+                                                val routeCoordinates = StopUtils.toLatLngs(StopUtils.sortByOrder(StopUtils.dedupeStopsByIdOrCoords(StopUtils.validStops(stops))))
                                                 mapLibreMap.addPolyline(
                                                     org.maplibre.android.annotations.PolylineOptions()
-                                                        .add(closestPoint)
-                                                        .add(stopLatLng)
+                                                        .addAll(routeCoordinates)
                                                         .color(routeColorInt)
-                                                        .width(3f) // Thinner than main route
-                                                )
-
-                                                // Choose icon depending on current zoom (useLogoIcon may be updated by camera listener)
-                                                val chosenIcon = if (useLogoIcon) logoIcon else dotIcon
-                                                // Add marker above connector line
-                                                mapLibreMap.addMarker(
-                                                    org.maplibre.android.annotations.MarkerOptions()
-                                                        .position(stopLatLng)
-                                                        .title(stop.stopName)
-                                                        .icon(chosenIcon)
+                                                        .width(5f)
                                                 )
                                             }
-                                        } else {
-                                            // If routeLatLngs not ready, fall back to straight line
-                                            val routeCoordinates = stops.map { LatLng(it.lat, it.lng) }
-                                            mapLibreMap.addPolyline(
-                                                org.maplibre.android.annotations.PolylineOptions()
-                                                    .addAll(routeCoordinates)
-                                                    .color(routeColorInt)
-                                                    .width(5f)
-                                            )
-                                        }
 
                                         // If a route was selected, zoom to the first stop (by stopOrder).
                                         // Otherwise, move camera to show all stops.
@@ -908,16 +945,22 @@ fun MapScreen(
 
                                                         // draw connector line from route to each stop (closest point on route)
                                                         val chosen = if (useLogoIcon) logoIconLocal else dotIconLocal
-                                                        stops.forEach { stop ->
+                                                        val CONNECTOR_THRESHOLD_METERS = 40.0
+                                                        val stopsCleanLocal = StopUtils.dedupeStopsByIdOrCoords(StopUtils.validStops(stops))
+                                                        val stopsSortedLocal = StopUtils.sortByOrder(stopsCleanLocal)
+                                                        stopsSortedLocal.forEach { stop ->
                                                             val stopLatLng = LatLng(stop.lat, stop.lng)
                                                             val closestPoint = findClosestPointOnRoute(stopLatLng, routeCoords)
-                                                            mapLibreMap.addPolyline(
-                                                                org.maplibre.android.annotations.PolylineOptions()
-                                                                    .add(closestPoint)
-                                                                    .add(stopLatLng)
-                                                                    .color(currentRouteColorInt)
-                                                                    .width(3f)
-                                                            )
+                                                            val distMeters = try { haversineDistanceKm(closestPoint, stopLatLng) * 1000.0 } catch (_: Exception) { 0.0 }
+                                                            if (distMeters > CONNECTOR_THRESHOLD_METERS) {
+                                                                mapLibreMap.addPolyline(
+                                                                    org.maplibre.android.annotations.PolylineOptions()
+                                                                        .add(closestPoint)
+                                                                        .add(stopLatLng)
+                                                                        .color(currentRouteColorInt)
+                                                                        .width(3f)
+                                                                )
+                                                            }
                                                             mapLibreMap.addMarker(
                                                                 org.maplibre.android.annotations.MarkerOptions()
                                                                     .position(stopLatLng)
@@ -1093,16 +1136,20 @@ fun MapScreen(
                                         )
 
                                         val chosenIcon = if (useLogoIcon) icon else dotIcon
+                                        val CONNECTOR_THRESHOLD_METERS = 40.0
                                         stops.forEach { stop ->
                                             val stopLatLng = LatLng(stop.lat, stop.lng)
                                             val closestPoint = findClosestPointOnRoute(stopLatLng, routeCoords)
-                                            mapLibreMap.addPolyline(
-                                                org.maplibre.android.annotations.PolylineOptions()
-                                                    .add(closestPoint)
-                                                    .add(stopLatLng)
-                                                    .color(routeColorInt2)
-                                                    .width(3f)
-                                            )
+                                            val distMeters = try { haversineDistanceKm(closestPoint, stopLatLng) * 1000.0 } catch (_: Exception) { 0.0 }
+                                            if (distMeters > CONNECTOR_THRESHOLD_METERS) {
+                                                mapLibreMap.addPolyline(
+                                                    org.maplibre.android.annotations.PolylineOptions()
+                                                        .add(closestPoint)
+                                                        .add(stopLatLng)
+                                                        .color(routeColorInt2)
+                                                        .width(3f)
+                                                )
+                                            }
                                             mapLibreMap.addMarker(
                                                 org.maplibre.android.annotations.MarkerOptions()
                                                     .position(stopLatLng)

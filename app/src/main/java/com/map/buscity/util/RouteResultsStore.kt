@@ -8,4 +8,24 @@ package com.map.buscity.util
 object RouteResultsStore {
     @Volatile
     var json: String? = null
+
+    // Optional coordinates from the original search (used to preserve POI coordinates
+    // when results are serialized/forwarded to the detail screen). These are kept
+    // in-memory as a pragmatic fallback for large nav payloads.
+    @Volatile
+    var originLat: Double? = null
+    @Volatile
+    var originLng: Double? = null
+    @Volatile
+    var destinationLat: Double? = null
+    @Volatile
+    var destinationLng: Double? = null
+
+    fun clear() {
+        json = null
+        originLat = null
+        originLng = null
+        destinationLat = null
+        destinationLng = null
+    }
 }
