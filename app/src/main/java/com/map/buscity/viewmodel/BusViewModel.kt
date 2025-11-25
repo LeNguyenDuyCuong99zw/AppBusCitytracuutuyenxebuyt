@@ -41,112 +41,7 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
 
     fun insertSampleData() {
         viewModelScope.launch {
-            val sampleRoutes = listOf(
-                BusRoute(
-                    routeNumber = "01",
-                    routeName = "Bến Thành - Bến xe buýt Chợ Lớn",
-                    startTime = "05:00",
-                    endTime = "20:15",
-                    price = 5000,
-                    rating = 4.8f
-                ),
-                BusRoute(
-                    routeNumber = "03",
-                    routeName = "Bến Thành - Thạnh Xuân",
-                    startTime = "04:00",
-                    endTime = "21:00",
-                    price = 6000,
-                    rating = 2.2f
-                ),
-                BusRoute(
-                    routeNumber = "04",
-                    routeName = "Bến Thành - Cộng Hòa - Bến xe An Sương",
-                    startTime = "05:00",
-                    endTime = "20:15",
-                    price = 6000,
-                    rating = 3.4f
-                ),
-                BusRoute(
-                    routeNumber = "05",
-                    routeName = "Bến xe buýt Chợ Lớn - Bến xe Biên Hòa",
-                    startTime = "04:50",
-                    endTime = "17:50",
-                    price = 10000,
-                    rating = 2.8f
-                ),
-                BusRoute(
-                    routeNumber = "06",
-                    routeName = "Bến xe buýt Chợ Lớn - Đại học Nông Lâm",
-                    startTime = "04:55",
-                    endTime = "21:00",
-                    price = 7000,
-                    rating = 3.0f
-                ),
-                BusRoute(
-                    routeNumber = "07",
-                    routeName = "Bến xe buýt Chợ Lớn - Gò Vấp",
-                    startTime = "04:00",
-                    endTime = "20:00",
-                    price = 6000,
-                    rating = 4.2f
-                ),
-                BusRoute(
-                    routeNumber = "08",
-                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
-                    startTime = "04:40",
-                    endTime = "20:30",
-                    price = 7000,
-                    rating = 4.2f
-                ),
-                BusRoute(
-                    routeNumber = "09",
-                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
-                    startTime = "04:40",
-                    endTime = "20:30",
-                    price = 7000,
-                    rating = 4.2f
-                ),
-                BusRoute(
-                    routeNumber = "10",
-                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
-                    startTime = "04:40",
-                    endTime = "20:30",
-                    price = 7000,
-                    rating = 4.2f
-                ),
-                BusRoute(
-                    routeNumber = "18",
-                    routeName = "Bến xe buýt Quận 8 - Đại học Quốc gia",
-                    startTime = "04:40",
-                    endTime = "20:30",
-                    price = 7000,
-                    rating = 4.2f
-                ),
-                BusRoute(
-                    routeNumber = "48",
-                    routeName = "Bến xe buýt Tân Phú - Chợ Hiệp Thành",
-                    startTime = "04:30",
-                    endTime = "20:00",
-                    price = 6000,
-                    rating = 4.3f
-                ),
-                BusRoute(
-                    routeNumber = "145",
-                    routeName = "Bến xe buýt Chợ Lớn - Chợ Hiệp Thành",
-                    startTime = "04:30",
-                    endTime = "20:30",
-                    price = 6000,
-                    rating = 3.2f
-                ),
-                BusRoute(
-                    routeNumber = "150",
-                    routeName = "Bến xe buýt Chợ Lớn - Bến xe Miền Đông mới",
-                    startTime = "04:00",
-                    endTime = "22:00",
-                    price = 7000,
-                    rating = 2.7f
-                )
-            )
+            val sampleRoutes = com.map.buscity.data.sample.SampleBusRouteData.getSampleRoutes()
             
             // Insert only when route with same routeNumber doesn't exist to avoid duplicates
             sampleRoutes.forEach { route ->
@@ -188,6 +83,16 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
      */
     suspend fun fetchRouteLatLngsForStops(stops: List<BusStop>, isReturn: Boolean = false): List<LatLng> {
         if (stops.isEmpty()) return emptyList()
+        // If this route is a metro/rail line with pre-defined alignment (e.g. MRT1),
+        // bypass OSRM routing and return the straight sequence of stop coordinates.
+        // This avoids using driving routing for rail lines which should be drawn
+        // by connecting stops directly.
+        val firstRouteNumber = stops.first().routeNumber
+        if (firstRouteNumber.equals("MRT1", ignoreCase = true)) {
+            val sortedStops = stops.sortedBy { it.stopOrder }
+            val straight = sortedStops.map { LatLng(it.lat, it.lng) }
+            return straight
+        }
 
         val routeNumber = stops.first().routeNumber
         // use a cache key that includes direction so forward/return don't share the same cached polyline
@@ -361,5 +266,30 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
             routeCache[cacheKey] = fallback
             return fallback
         }
+    }
+
+    /**
+     * Clear cached route data. If `routeNumber` is null, clears all persisted route cache and
+     * in-memory cache. Otherwise removes cache for the given route key (including direction suffix).
+     */
+    fun clearCachedRoute(routeNumber: String? = null) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    if (routeNumber.isNullOrBlank()) {
+                        try { routeCacheDao.deleteAll() } catch (_: Exception) {}
+                    } else {
+                        try { routeCacheDao.delete(routeNumber) } catch (_: Exception) {}
+                    }
+                }
+            } catch (_: Exception) {}
+            // clear in-memory cache as well
+            try { routeCache.clear() } catch (_: Exception) {}
+        }
+    }
+
+    /** Convenience to clear everything. */
+    fun clearAllCachedData() {
+        clearCachedRoute(null)
     }
 }

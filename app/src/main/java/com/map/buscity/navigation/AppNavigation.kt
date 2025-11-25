@@ -1,11 +1,15 @@
 package com.map.buscity.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import com.google.accompanist.navigation.animation.AnimatedNavHost
+import com.google.accompanist.navigation.animation.composable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import com.map.buscity.ui.home.HomeScreen
 import com.map.buscity.ui.routes.BusRouteScreen
 import com.map.buscity.ui.home.RouteScreen
@@ -17,14 +21,16 @@ import com.map.buscity.data.RouteLeg
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLDecoder
+import com.map.buscity.util.RouteResultsStore
 
 @Composable
+@OptIn(ExperimentalAnimationApi::class)
 fun AppNavigation(
     navController: NavHostController,
 ) {
-    NavHost(
+    AnimatedNavHost(
         navController = navController,
-        startDestination = "home"
+        startDestination = "home",
     ) {
         composable("home") {
             // HomeScreen takes NavController in this project; pass the navController through
@@ -50,6 +56,11 @@ fun AppNavigation(
                 navArgument("originTitle") { type = NavType.StringType; defaultValue = "" },
                 navArgument("originKind") { type = NavType.StringType; defaultValue = "" }
             )
+        ,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) }
         ) { backStackEntry ->
             val title = backStackEntry.arguments?.getString("title") ?: ""
             val lat = backStackEntry.arguments?.getString("lat")?.toDoubleOrNull()
@@ -76,6 +87,11 @@ fun AppNavigation(
             arguments = listOf(
                 navArgument("resultsJson") { type = NavType.StringType }
             )
+        ,
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) }
         ) { backStackEntry ->
             val ctx = LocalContext.current
             Toast.makeText(ctx, "Nav: route_results with arg", Toast.LENGTH_SHORT).show()
@@ -134,7 +150,12 @@ fun AppNavigation(
 
         // Alternate entrypoint: results passed via savedStateHandle from previous back stack entry.
         // This avoids very long URL-encoded JSON in the route argument and is more robust.
-        composable(route = "route_results") { backStackEntry ->
+        composable(route = "route_results",
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { backStackEntry ->
             val ctx = LocalContext.current
             Toast.makeText(ctx, "Nav: route_results via savedStateHandle", Toast.LENGTH_SHORT).show()
             val prevJson: String? = navController.previousBackStackEntry?.savedStateHandle?.get<String>("route_results_json")
@@ -184,6 +205,67 @@ fun AppNavigation(
             }
 
             RouteResultsScreen(navController = navController, results = results)
+        }
+
+        // Detail view for a selected route (reads JSON from savedStateHandle)
+        composable(route = "route_detail",
+            enterTransition = { fadeIn(animationSpec = tween(300)) },
+            exitTransition = { fadeOut(animationSpec = tween(300)) },
+            popEnterTransition = { fadeIn(animationSpec = tween(300)) },
+            popExitTransition = { fadeOut(animationSpec = tween(300)) }
+        ) { backStackEntry ->
+            val ctx = LocalContext.current
+            var prevJson: String? = navController.previousBackStackEntry?.savedStateHandle?.get<String>("route_detail_json")
+            // fallback to in-memory store if savedStateHandle was not populated (very large payloads or nav timing)
+            if (prevJson.isNullOrBlank()) prevJson = RouteResultsStore.json
+            if (prevJson.isNullOrBlank()) {
+                // no data: silently skip showing a toast (handled by caller)
+            } else {
+                // Parse single RouteFinderResult (first element expected)
+                val result = try {
+                    val arr = JSONArray(prevJson)
+                    if (arr.length() > 0) {
+                        val obj = arr.getJSONObject(0)
+                        // Parse legs with stops omitted here; the RouteDetail screen will parse stops if present
+                        val legsArr = obj.getJSONArray("legs")
+                        val legs = mutableListOf<com.map.buscity.data.RouteLeg>()
+                        for (i in 0 until legsArr.length()) {
+                            val legObj = legsArr.getJSONObject(i)
+                            legs.add(
+                                com.map.buscity.data.RouteLeg(
+                                    routeNumber = legObj.optString("routeNumber", ""),
+                                    routeName = legObj.optString("routeName", ""),
+                                    price = legObj.optInt("price", 0),
+                                    startStopName = legObj.optString("startStopName", ""),
+                                    startStopOrder = legObj.optInt("startStopOrder", 0),
+                                    endStopName = legObj.optString("endStopName", ""),
+                                    endStopOrder = legObj.optInt("endStopOrder", 0),
+                                    stops = emptyList()
+                                )
+                            )
+                        }
+
+                        com.map.buscity.data.RouteFinderResult(
+                            legs = legs,
+                            totalDistance = obj.optDouble("totalDistance", 0.0),
+                            totalTime = obj.optInt("totalTime", 0),
+                            totalPrice = obj.optInt("totalPrice", 0),
+                            transferCount = obj.optInt("transferCount", 0),
+                            walkingDistance = obj.optDouble("walkingDistance", 0.0),
+                            originTitle = obj.optString("originTitle", ""),
+                            destinationTitle = obj.optString("destinationTitle", "")
+                        )
+                    } else null
+                } catch (e: Exception) {
+                    null
+                }
+
+                if (result != null) {
+                    com.map.buscity.ui.map.RouteDetailMapScreen(navController = navController, routeJson = prevJson)
+                } else {
+                    Toast.makeText(ctx, "Dữ liệu tuyến không hợp lệ", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }

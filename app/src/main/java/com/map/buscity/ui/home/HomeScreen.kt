@@ -274,7 +274,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     // navigate to routes
                     navController.navigate("routes")
                 }
-                ModeButton(label = "Metro", gradientColors = listOf(Color(0xFFAEE9F7), Color(0xFF5FD0EE)), iconEmoji = "🚆", iconResName = "mode_metro")
+                ModeButton(label = "Metro", gradientColors = listOf(Color(0xFFAEE9F7), Color(0xFF5FD0EE)), iconEmoji = "🚆", iconResName = "mode_metro") {
+                    // Open map centered on the metro route (MRT1)
+                    navController.navigate("map/route/MRT1")
+                }
                 ModeButton(label = "Trạm", gradientColors = listOf(Color(0xFFFFE3B2), Color(0xFFFFB66A)), iconEmoji = "🚋", iconResName = "mode_tram")
             }
 

@@ -2,6 +2,7 @@ package com.map.buscity.ui.home
 
 import android.app.Activity
 import android.content.Context
+import androidx.compose.foundation.shape.CircleShape
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.background
@@ -57,6 +58,16 @@ import com.map.buscity.viewmodel.BusViewModelFactory
 import com.map.buscity.data.sample.SampleBusStopData
 import com.map.buscity.data.BusRoute
 import kotlin.math.*
+
+// Local lightweight stop representation that can mark forward/return direction
+private data class LocalStop(
+    val routeNumber: String,
+    val stopName: String,
+    val lat: Double,
+    val lng: Double,
+    val stopOrder: Int,
+    val isReturn: Boolean = false
+)
 
 /**
  * Simple route screen: top controls + map showing a green polyline from origin to destination.
@@ -204,7 +215,23 @@ fun RouteScreen(
                 .padding(16.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        // Try to pop back to a known home route first; if not present, navigate to it.
+                        val targetRoute = "home"
+                        val popped = try {
+                            navController.popBackStack(targetRoute, false)
+                        } catch (e: Exception) {
+                            false
+                        }
+                        if (!popped) {
+                            try {
+                                navController.navigate(targetRoute) { launchSingleTop = true }
+                            } catch (e: Exception) {
+                                // fallback to default behaviour if navigation to 'home' fails
+                                try { navController.popBackStack() } catch (_: Exception) {}
+                            }
+                        }
+                    }) {
                         Icon(imageVector = androidx.compose.material.icons.Icons.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                     Spacer(modifier = Modifier.width(8.dp))
@@ -235,7 +262,7 @@ fun RouteScreen(
                                 Text(text = "Đi từ", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = androidx.compose.material.icons.Icons.Filled.LocationOn, contentDescription = "Vị trí hiện tại", tint = Color.White, modifier = Modifier.size(20.dp))
+                                    Box(modifier = Modifier.size(20.dp).background(Color.Black, shape = CircleShape).border(width = 2.dp, color = Color.White, shape = CircleShape))
                                     Spacer(modifier = Modifier.width(10.dp))
                                     val displayOrigin = try { java.net.URLDecoder.decode(originLabel.value ?: "Vị trí hiện tại", "UTF-8") } catch (_: Exception) { originLabel.value ?: "Vị trí hiện tại" }
                                     Text(text = displayOrigin, color = Color.White, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, fontSize = 16.sp)
@@ -260,6 +287,9 @@ fun RouteScreen(
                                 }, verticalAlignment = Alignment.CenterVertically) {
                                 Text(text = "Đến", color = Color.White, fontWeight = FontWeight.Medium)
                                 Spacer(modifier = Modifier.width(12.dp))
+                                // small destination preview icon (red)
+                                Icon(imageVector = androidx.compose.material.icons.Icons.Filled.LocationOn, contentDescription = "Đích", tint = Color(0xFFE53935), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
                                 val decodedTitle = try { java.net.URLDecoder.decode(localDestTitle ?: "", "UTF-8") } catch (_: Exception) { localDestTitle ?: "" }
                                 val displayDest = if (!localDestKind.isNullOrBlank() && localDestKind!!.uppercase() == "STOP") "[Trạm] $decodedTitle" else decodedTitle
                                 Text(text = displayDest, color = Color.White, fontSize = 16.sp)
@@ -284,13 +314,58 @@ fun RouteScreen(
                                     coroutineScope.launch {
                                         // use DB stops when available, otherwise sample data
                                         val allStopsLocal = if (dbStopsState.value.isNotEmpty()) dbStopsState.value else SampleBusStopData.getSampleStops()
-                                        val allRoutesLocal = allStopsLocal.map { it.routeNumber }.distinct().map { rn ->
-                                            BusRoute(routeNumber = rn, routeName = "Tuyến $rn", startTime = "05:00", endTime = "22:00", price = 12000, rating = 4.2f)
+                                        // Prefer persisted route metadata when available in the ViewModel; otherwise derive from stops
+                                        val vmRoutes = actualViewModel.routes.value
+                                        val allRoutesLocal = if (vmRoutes.isNotEmpty()) {
+                                            vmRoutes
+                                        } else {
+                                            // build BusRoute objects from stops: prefer sample metadata when available so price/startTime aren't zero
+                                            val sampleMeta = com.map.buscity.data.sample.SampleBusRouteData.getSampleRoutes().associateBy { it.routeNumber }
+                                            val distinctRouteNumbers = allStopsLocal.map { it.routeNumber }.distinct()
+                                            distinctRouteNumbers.map { rn ->
+                                                val stopsForRoute = allStopsLocal.filter { it.routeNumber == rn }
+                                                val routeNameFallback = stopsForRoute.firstOrNull()?.stopName ?: "Tuyến $rn"
+                                                val meta = sampleMeta[rn]
+                                                BusRoute(
+                                                    routeNumber = rn,
+                                                    routeName = meta?.routeName ?: routeNameFallback,
+                                                    startTime = meta?.startTime ?: "",
+                                                    endTime = meta?.endTime ?: "",
+                                                    price = meta?.price ?: 0,
+                                                    rating = meta?.rating ?: 0f
+                                                )
+                                            }
                                         }
 
+                                        // Build a combined forward+return LocalStop list so we can detect direction
+                                        val combinedLocalStops = mutableListOf<LocalStop>()
+                                        try {
+                                            // if DB has stops, prefer reading per-route from ViewModel (handles both directions)
+                                            if (dbStopsState.value.isNotEmpty()) {
+                                                // for each known route, fetch forward and return stops
+                                                for (rmeta in allRoutesLocal) {
+                                                    try {
+                                                        val fwd = actualViewModel.getStopsForRoute(rmeta.routeNumber).first()
+                                                        fwd.forEach { s -> combinedLocalStops.add(LocalStop(routeNumber = s.routeNumber, stopName = s.stopName, lat = s.lat, lng = s.lng, stopOrder = s.stopOrder, isReturn = false)) }
+                                                    } catch (_: Exception) {}
+                                                    try {
+                                                        val ret = actualViewModel.getReturnStopsForRoute(rmeta.routeNumber).first()
+                                                        ret.forEach { s -> combinedLocalStops.add(LocalStop(routeNumber = s.routeNumber, stopName = s.stopName, lat = s.lat, lng = s.lng, stopOrder = s.stopOrder, isReturn = true)) }
+                                                    } catch (_: Exception) {}
+                                                }
+                                            } else {
+                                                // fallback to bundled sample stops (forward + return)
+                                                val sampleFwd = com.map.buscity.data.sample.SampleBusStopData.getSampleStops()
+                                                sampleFwd.forEach { s -> combinedLocalStops.add(LocalStop(routeNumber = s.routeNumber, stopName = s.stopName, lat = s.lat, lng = s.lng, stopOrder = s.stopOrder, isReturn = false)) }
+                                                val sampleRet = com.map.buscity.data.sample.SampleBusStopReturnData.getSampleReturnStops()
+                                                sampleRet.forEach { s -> combinedLocalStops.add(LocalStop(routeNumber = s.routeNumber, stopName = s.stopName, lat = s.lat, lng = s.lng, stopOrder = s.stopOrder, isReturn = true)) }
+                                            }
+                                        } catch (_: Exception) {}
+
+                                        // Compute candidate routes (pair of BusRoute + isReturn flag)
                                         val suggestions = withContext(Dispatchers.Default) {
-                                            computeRoutesBetweenCoords(
-                                                allStopsLocal,
+                                            computeRoutesBetweenCoordsLocal(
+                                                combinedLocalStops,
                                                 allRoutesLocal,
                                                 origin.latitude,
                                                 origin.longitude,
@@ -301,81 +376,111 @@ fun RouteScreen(
                                         }
 
                                         // Build RouteFinderResult list (one-leg results) and navigate to the dedicated results screen
-                                        val results = suggestions.map { r ->
-                                            val stopsForRoute = allStopsLocal.filter { it.routeNumber == r.routeNumber }.sortedBy { it.stopOrder }
-                                            val nearestStart = findNearestStopToPoint(stopsForRoute, origin.latitude, origin.longitude)
-                                            val nearestEnd = findNearestStopToPoint(stopsForRoute, localDestLat!!, localDestLng!!)
-                                            val leg = com.map.buscity.data.RouteLeg(
-                                                routeNumber = r.routeNumber,
-                                                routeName = r.routeName,
-                                                price = r.price,
-                                                startStopName = nearestStart?.stopName ?: "",
-                                                startStopOrder = nearestStart?.stopOrder ?: 0,
-                                                endStopName = nearestEnd?.stopName ?: "",
-                                                endStopOrder = nearestEnd?.stopOrder ?: 0,
-                                                stops = emptyList()
-                                            )
-                                            val walking = (nearestStart?.let { distanceMeters(origin.latitude, origin.longitude, it.lat, it.lng) } ?: 0.0) + (nearestEnd?.let { distanceMeters(localDestLat!!, localDestLng!!, it.lat, it.lng) } ?: 0.0)
-                                            com.map.buscity.data.RouteFinderResult(
-                                                legs = listOf(leg),
-                                                totalDistance = 0.0,
-                                                totalTime = 0,
-                                                totalPrice = r.price,
-                                                transferCount = 0,
-                                                walkingDistance = walking,
-                                                originTitle = originLabel.value ?: "",
-                                                destinationTitle = localDestTitle ?: ""
-                                            )
+                                        val results = mutableListOf<com.map.buscity.data.RouteFinderResult>()
+                                        for ((routeMeta, isReturn) in suggestions) {
+                                            try {
+                                                val stopsForRouteLocal = if (isReturn) {
+                                                    // try DB return stops first
+                                                    try {
+                                                        actualViewModel.getReturnStopsForRoute(routeMeta.routeNumber).first().map { bs -> com.map.buscity.data.BusStop(routeNumber = bs.routeNumber, stopName = bs.stopName, lat = bs.lat, lng = bs.lng, stopOrder = bs.stopOrder) }
+                                                    } catch (_: Exception) {
+                                                        // fallback to forward stops if return not available
+                                                        try { actualViewModel.getStopsForRoute(routeMeta.routeNumber).first() } catch (_: Exception) { emptyList() }
+                                                    }
+                                                } else {
+                                                    try { actualViewModel.getStopsForRoute(routeMeta.routeNumber).first() } catch (_: Exception) { emptyList() }
+                                                }
+
+                                                val nearestStart = if (stopsForRouteLocal.isNotEmpty()) findNearestStopToPoint(stopsForRouteLocal, origin.latitude, origin.longitude) else null
+                                                val nearestEnd = if (stopsForRouteLocal.isNotEmpty()) findNearestStopToPoint(stopsForRouteLocal, localDestLat!!, localDestLng!!) else null
+
+                                                val leg = com.map.buscity.data.RouteLeg(
+                                                    routeNumber = routeMeta.routeNumber,
+                                                    routeName = routeMeta.routeName,
+                                                    price = routeMeta.price,
+                                                    startStopName = nearestStart?.stopName ?: "",
+                                                    startStopOrder = nearestStart?.stopOrder ?: 0,
+                                                    endStopName = nearestEnd?.stopName ?: "",
+                                                    endStopOrder = nearestEnd?.stopOrder ?: 0,
+                                                    stops = emptyList()
+                                                )
+
+                                                val walking = (nearestStart?.let { distanceMeters(origin.latitude, origin.longitude, it.lat, it.lng) } ?: 0.0) + (nearestEnd?.let { distanceMeters(localDestLat!!, localDestLng!!, it.lat, it.lng) } ?: 0.0)
+
+                                                results.add(com.map.buscity.data.RouteFinderResult(
+                                                    legs = listOf(leg),
+                                                    totalDistance = 0.0,
+                                                    totalTime = 0,
+                                                    totalPrice = routeMeta.price,
+                                                    transferCount = 0,
+                                                    walkingDistance = walking,
+                                                    originTitle = originLabel.value ?: "",
+                                                    destinationTitle = localDestTitle ?: ""
+                                                ))
+                                            } catch (_: Exception) {}
                                         }
 
-                                        // encode results as JSON and navigate
-                                        try {
-                                            val arr = org.json.JSONArray()
-                                            for (res in results) {
-                                                val obj = org.json.JSONObject()
-                                                obj.put("totalDistance", res.totalDistance)
-                                                obj.put("totalTime", res.totalTime)
-                                                obj.put("totalPrice", res.totalPrice)
-                                                obj.put("transferCount", res.transferCount)
-                                                obj.put("originTitle", res.originTitle)
-                                                obj.put("destinationTitle", res.destinationTitle)
-                                                obj.put("walkingDistance", res.walkingDistance)
-                                                val legsArr = org.json.JSONArray()
-                                                for (leg in res.legs) {
-                                                    val legObj = org.json.JSONObject()
-                                                    legObj.put("routeNumber", leg.routeNumber)
-                                                    legObj.put("routeName", leg.routeName)
-                                                    legObj.put("price", leg.price)
-                                                    legObj.put("startStopName", leg.startStopName)
-                                                    legObj.put("startStopOrder", leg.startStopOrder)
-                                                    legObj.put("endStopName", leg.endStopName)
-                                                    legObj.put("endStopOrder", leg.endStopOrder)
-                                                    legsArr.put(legObj)
-                                                }
-                                                obj.put("legs", legsArr)
-                                                arr.put(obj)
-                                            }
-                                            val jsonStr = arr.toString()
+                                        // remove duplicate routeNumber entries: keep the one with smallest walkingDistance
+                                        val dedupedResults = results
+                                            .groupBy { it.legs.firstOrNull()?.routeNumber ?: "" }
+                                            .mapNotNull { (_, list) -> list.minByOrNull { it.walkingDistance } }
 
-                                            // If there are no results, show a toast and do not navigate
-                                            if (results.isEmpty()) {
-                                                withContext(Dispatchers.Main) {
-                                                    Toast.makeText(context, "Không tìm thấy tuyến phù hợp", Toast.LENGTH_SHORT).show()
-                                                    // also update UI state so developer can inspect
-                                                    suggestedRoutesState.value = suggestions
+                                        // encode results as JSON and navigate
+                                            try {
+                                                val arr = org.json.JSONArray()
+                                                for (res in dedupedResults) {
+                                                    val obj = org.json.JSONObject()
+                                                    obj.put("totalDistance", res.totalDistance)
+                                                    obj.put("totalTime", res.totalTime)
+                                                    obj.put("totalPrice", res.totalPrice)
+                                                    obj.put("transferCount", res.transferCount)
+                                                    obj.put("originTitle", res.originTitle)
+                                                    obj.put("destinationTitle", res.destinationTitle)
+                                                    obj.put("walkingDistance", res.walkingDistance)
+                                                    val legsArr = org.json.JSONArray()
+                                                    for (leg in res.legs) {
+                                                        val legObj = org.json.JSONObject()
+                                                        legObj.put("routeNumber", leg.routeNumber)
+                                                        legObj.put("routeName", leg.routeName)
+                                                        legObj.put("price", leg.price)
+                                                        legObj.put("startStopName", leg.startStopName)
+                                                        legObj.put("startStopOrder", leg.startStopOrder)
+                                                        legObj.put("endStopName", leg.endStopName)
+                                                        legObj.put("endStopOrder", leg.endStopOrder)
+                                                        legsArr.put(legObj)
+                                                    }
+                                                    obj.put("legs", legsArr)
+                                                    arr.put(obj)
                                                 }
-                                            } else {
-                                                // Prefer passing results via savedStateHandle to avoid very long route args
+                                                val jsonStr = arr.toString()
+
+                                                // If there are no results, show a toast and do not navigate
+                                                if (results.isEmpty()) {
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(context, "Không tìm thấy tuyến phù hợp", Toast.LENGTH_SHORT).show()
+                                                        // also update UI state so developer can inspect (only route metadata)
+                                                        suggestedRoutesState.value = suggestions.map { it.first }
+                                                    }
+
+                                                } else {
+                                                    // Prefer passing results via savedStateHandle to avoid very long route args
                                                     navController.currentBackStackEntry?.savedStateHandle?.set("route_results_json", jsonStr)
+
                                                     // Also set in-memory fallback store so large payloads always reach the results screen
                                                     try {
                                                         com.map.buscity.util.RouteResultsStore.json = jsonStr
+                                                        // store the original search coordinates so the detail screen can prefer the
+                                                        // user-selected POI coordinates instead of substituting the last bus stop.
+                                                        com.map.buscity.util.RouteResultsStore.destinationLat = localDestLat
+                                                        com.map.buscity.util.RouteResultsStore.destinationLng = localDestLng
+                                                        com.map.buscity.util.RouteResultsStore.originLat = originState.value.latitude
+                                                        com.map.buscity.util.RouteResultsStore.originLng = originState.value.longitude
                                                     } catch (_: Exception) {}
 
-                                                // If the payload is small, navigate with URL-encoded JSON path (more reliable across some NavController setups)
-                                                val encoded = try { java.net.URLEncoder.encode(jsonStr, "UTF-8") } catch (_: Exception) { null }
-                                                withContext(Dispatchers.Main) {
-                                                    Toast.makeText(context, "Đã tìm thấy ${results.size} gợi ý", Toast.LENGTH_SHORT).show()
+                                                    // If the payload is small, navigate with URL-encoded JSON path (more reliable across some NavController setups)
+                                                    val encoded = try { java.net.URLEncoder.encode(jsonStr, "UTF-8") } catch (_: Exception) { null }
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(context, "Đã tìm thấy ${results.size} gợi ý", Toast.LENGTH_SHORT).show()
                                                         if (!encoded.isNullOrBlank() && encoded.length < 2000) {
                                                             // navigate using path (works for small payloads)
                                                             navController.navigate("route_results/$encoded") {
@@ -387,12 +492,12 @@ fun RouteScreen(
                                                                 launchSingleTop = true
                                                             }
                                                         }
+                                                    }
                                                 }
+                                            } catch (e: Exception) {
+                                                // fallback: set suggestedRoutesState so UI still shows something (only route metadata)
+                                                suggestedRoutesState.value = suggestions.map { it.first }
                                             }
-                                        } catch (e: Exception) {
-                                            // fallback: set suggestedRoutesState so UI still shows something
-                                            suggestedRoutesState.value = suggestions
-                                        }
                                     }
                                 }
                             }, colors = ButtonDefaults.buttonColors(containerColor = Color.White), shape = RoundedCornerShape(28.dp), modifier = Modifier.height(56.dp)) {
@@ -505,6 +610,73 @@ fun RouteScreen(
     }
 }
 
+/** Create a simple origin marker bitmap: black filled circle with white border */
+private fun createOriginMarkerBitmap(context: Context, sizeDp: Int = 20): android.graphics.Bitmap {
+    val density = context.resources.displayMetrics.density
+    val sizePx = (sizeDp * density).toInt().coerceAtLeast(1)
+    val strokePx = (2 * density)
+
+    val bmp = android.graphics.Bitmap.createBitmap(sizePx, sizePx, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bmp)
+
+    val paintFill = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.BLACK
+        style = android.graphics.Paint.Style.FILL
+    }
+    val paintStroke = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.WHITE
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = strokePx
+    }
+
+    val cx = sizePx / 2f
+    val cy = sizePx / 2f
+    val radius = sizePx / 2f - strokePx / 2f
+    canvas.drawCircle(cx, cy, radius, paintFill)
+    canvas.drawCircle(cx, cy, radius, paintStroke)
+    return bmp
+}
+
+/** Create a simple destination pin bitmap: red pin (circle + tail) */
+private fun createDestMarkerBitmap(context: Context, sizeDp: Int = 28): android.graphics.Bitmap {
+    val density = context.resources.displayMetrics.density
+    val sizePx = (sizeDp * density).toInt().coerceAtLeast(1)
+    val bmp = android.graphics.Bitmap.createBitmap(sizePx, sizePx, android.graphics.Bitmap.Config.ARGB_8888)
+    val canvas = android.graphics.Canvas(bmp)
+
+    val paintFill = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.parseColor("#E53935") // red
+        style = android.graphics.Paint.Style.FILL
+    }
+    val paintInner = android.graphics.Paint().apply {
+        isAntiAlias = true
+        color = android.graphics.Color.WHITE
+        style = android.graphics.Paint.Style.FILL
+    }
+
+    // Draw main circle slightly above center
+    val cx = sizePx / 2f
+    val cy = sizePx * 0.38f
+    val radius = sizePx * 0.28f
+    canvas.drawCircle(cx, cy, radius, paintFill)
+
+    // Draw tail as triangle pointing down
+    val path = android.graphics.Path()
+    path.moveTo(cx - radius * 0.6f, cy + radius * 0.2f)
+    path.lineTo(cx + radius * 0.6f, cy + radius * 0.2f)
+    path.lineTo(cx, sizePx.toFloat())
+    path.close()
+    canvas.drawPath(path, paintFill)
+
+    // Small white inner circle for contrast
+    canvas.drawCircle(cx, cy, radius * 0.5f, paintInner)
+
+    return bmp
+}
+
 /** Haversine distance in meters between two lat/lng points */
 private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
     val R = 6371000.0 // meters
@@ -526,6 +698,64 @@ fun formatDistanceKmMeters(meters: Double): String {
 private fun findNearestStopToPoint(stops: List<com.map.buscity.data.BusStop>, lat: Double, lng: Double): com.map.buscity.data.BusStop? {
     if (stops.isEmpty()) return null
     return stops.minByOrNull { distanceMeters(lat, lng, it.lat, it.lng) }
+}
+
+private fun findNearestLocalStopToPoint(stops: List<LocalStop>, lat: Double, lng: Double): LocalStop? {
+    if (stops.isEmpty()) return null
+    return stops.minByOrNull { distanceMeters(lat, lng, it.lat, it.lng) }
+}
+
+/**
+ * Compute candidate routes considering both forward and return directions.
+ * Returns a list of Pair<BusRoute, isReturn> ordered by descending score.
+ */
+private fun computeRoutesBetweenCoordsLocal(
+    allStops: List<LocalStop>,
+    allRoutes: List<com.map.buscity.data.BusRoute>,
+    startLat: Double,
+    startLng: Double,
+    endLat: Double,
+    endLng: Double,
+    maxDistanceMeters: Double = 600.0
+): List<Pair<com.map.buscity.data.BusRoute, Boolean>> {
+    if (allStops.isEmpty() || allRoutes.isEmpty()) return emptyList()
+
+    // Group stops by (routeNumber, isReturn) so forward/return are separate
+    val byRouteDir = allStops.groupBy { Pair(it.routeNumber, it.isReturn) }
+
+    val matches = mutableListOf<Triple<com.map.buscity.data.BusRoute, Boolean, Int>>() // route, isReturn, score
+
+    for (r in allRoutes) {
+        // consider both directions for this route
+        for (dir in listOf(false, true)) {
+            val stops = byRouteDir[Pair(r.routeNumber, dir)] ?: continue
+            if (stops.isEmpty()) continue
+
+            val nearestStart = findNearestLocalStopToPoint(stops, startLat, startLng)
+            val nearestEnd = findNearestLocalStopToPoint(stops, endLat, endLng)
+            if (nearestStart == null || nearestEnd == null) continue
+
+            val dStart = distanceMeters(startLat, startLng, nearestStart.lat, nearestStart.lng)
+            val dEnd = distanceMeters(endLat, endLng, nearestEnd.lat, nearestEnd.lng)
+            if (dStart <= maxDistanceMeters && dEnd <= maxDistanceMeters) {
+                val stopsSorted = stops.sortedBy { it.stopOrder }
+                val sIdx = stopsSorted.indexOfFirst { it.stopOrder == nearestStart.stopOrder }
+                val eIdx = stopsSorted.indexOfFirst { it.stopOrder == nearestEnd.stopOrder }
+
+                var score = 0
+                // prefer routes where start comes before end (same direction travel)
+                if (sIdx >= 0 && eIdx >= 0 && sIdx < eIdx) score += 150
+                // prefer shorter walking distances
+                score += (1000 - (dStart + dEnd)).toInt().coerceAtLeast(0)
+                // slight preference for forward direction to keep UX stable
+                if (!dir) score += 10
+
+                matches.add(Triple(r, dir, score))
+            }
+        }
+    }
+
+    return matches.sortedByDescending { it.third }.map { Pair(it.first, it.second) }
 }
 
 /**
@@ -657,12 +887,24 @@ private fun RouteMapView(context: Context, origin: LatLng, destLat: Double?, des
                 // clear existing annotations
                 mapLibreMap.clear()
 
-                // Add origin marker
-                mapLibreMap.addMarker(MarkerOptions().position(origin))
+                // Add origin marker with custom bitmap if possible
+                try {
+                    val iconFactory = org.maplibre.android.annotations.IconFactory.getInstance(context)
+                    val originBmp = createOriginMarkerBitmap(context, 22)
+                    mapLibreMap.addMarker(MarkerOptions().position(origin).icon(iconFactory.fromBitmap(originBmp)))
+                } catch (_: Exception) {
+                    try { mapLibreMap.addMarker(MarkerOptions().position(origin)) } catch (_: Exception) {}
+                }
 
                 if (destLat != null && destLng != null) {
                     val dest = LatLng(destLat, destLng)
-                    mapLibreMap.addMarker(MarkerOptions().position(dest))
+                    try {
+                        val iconFactory = org.maplibre.android.annotations.IconFactory.getInstance(context)
+                        val destBmp = createDestMarkerBitmap(context, 34)
+                        mapLibreMap.addMarker(MarkerOptions().position(dest).icon(iconFactory.fromBitmap(destBmp)))
+                    } catch (_: Exception) {
+                        try { mapLibreMap.addMarker(MarkerOptions().position(dest)) } catch (_: Exception) {}
+                    }
 
                     if (routePoints.isNotEmpty()) {
                         // Draw the returned route points (OSRM geometry)
