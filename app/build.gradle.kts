@@ -114,4 +114,6 @@ dependencies {
 
     // DataStore for simple persistence
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // Accompanist navigation animation for animated transitions between destinations
+    implementation("com.google.accompanist:accompanist-navigation-animation:0.30.1")
 }
