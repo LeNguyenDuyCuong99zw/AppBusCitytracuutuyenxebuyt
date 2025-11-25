@@ -27,6 +27,9 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.map.buscity.ui.news.NewsScreen
 import com.map.buscity.ui.favorite.FavoriteScreen
+import com.map.buscity.util.RouteResultsStore
+import org.json.JSONArray
+import org.json.JSONObject
 
 // navigation argument helpers removed; we'll parse args manually to avoid navArgument dependency
 
@@ -264,8 +267,60 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 // clear in-memory fallback after consuming
-                                try { com.map.buscity.util.RouteResultsStore.json = null } catch (_: Exception) {}
+                                try { com.map.buscity.util.RouteResultsStore.clear() } catch (_: Exception) {}
                                 com.map.buscity.ui.home.RouteResultsScreen(navController = navController, results = results)
+                            }
+                            // Detail view for a selected route (reads JSON from savedStateHandle)
+                            composable(route = "route_detail") { backStackEntry ->
+                                val ctx = this@MainActivity
+                                var prevJson: String? = navController.previousBackStackEntry?.savedStateHandle?.get<String>("route_detail_json")
+                                if (prevJson.isNullOrBlank()) prevJson = try { RouteResultsStore.json } catch (_: Exception) { null }
+                                                if (prevJson.isNullOrBlank()) {
+                                                    // silent: no data to show
+                                                } else {
+                                    val result = try {
+                                        val arr = JSONArray(prevJson)
+                                        if (arr.length() > 0) {
+                                            val obj = arr.getJSONObject(0)
+                                            val legsArr = obj.getJSONArray("legs")
+                                            val legs = mutableListOf<com.map.buscity.data.RouteLeg>()
+                                            for (i in 0 until legsArr.length()) {
+                                                val legObj = legsArr.getJSONObject(i)
+                                                legs.add(
+                                                    com.map.buscity.data.RouteLeg(
+                                                        routeNumber = legObj.optString("routeNumber", ""),
+                                                        routeName = legObj.optString("routeName", ""),
+                                                        price = legObj.optInt("price", 0),
+                                                        startStopName = legObj.optString("startStopName", ""),
+                                                        startStopOrder = legObj.optInt("startStopOrder", 0),
+                                                        endStopName = legObj.optString("endStopName", ""),
+                                                        endStopOrder = legObj.optInt("endStopOrder", 0),
+                                                        stops = emptyList()
+                                                    )
+                                                )
+                                            }
+
+                                            com.map.buscity.data.RouteFinderResult(
+                                                legs = legs,
+                                                totalDistance = obj.optDouble("totalDistance", 0.0),
+                                                totalTime = obj.optInt("totalTime", 0),
+                                                totalPrice = obj.optInt("totalPrice", 0),
+                                                transferCount = obj.optInt("transferCount", 0),
+                                                walkingDistance = obj.optDouble("walkingDistance", 0.0),
+                                                originTitle = obj.optString("originTitle", ""),
+                                                destinationTitle = obj.optString("destinationTitle", "")
+                                            )
+                                        } else null
+                                    } catch (e: Exception) {
+                                        null
+                                    }
+
+                                    if (result != null) {
+                                        com.map.buscity.ui.map.RouteDetailMapScreen(navController = navController, routeJson = prevJson)
+                                    } else {
+                                        android.widget.Toast.makeText(ctx, "Dữ liệu tuyến không hợp lệ", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             }
                             composable("route/{routeId}") { backStackEntry ->
                                 // parse the routeId from arguments as a string and convert to Int

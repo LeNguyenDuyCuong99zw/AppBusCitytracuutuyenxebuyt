@@ -15,4 +15,7 @@ interface RouteCacheDao {
 
     @Query("DELETE FROM route_cache WHERE route_number = :routeNumber")
     suspend fun delete(routeNumber: String)
+
+    @Query("DELETE FROM route_cache")
+    suspend fun deleteAll()
 }
