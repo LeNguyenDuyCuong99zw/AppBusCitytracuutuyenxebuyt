@@ -334,7 +334,13 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
             ) {
                 items(features) { feature ->
                     val (label, iconName, gradientColors) = feature
-                    FeatureItem(label = label, iconResName = iconName, iconEmoji = "�", gradientColors = gradientColors)
+                    Box(modifier = Modifier.clickable {
+                        if (label == "Hướng dẫn dùng App") {
+                            navController.navigate("help")
+                        }
+                    }) {
+                        FeatureItem(label = label, iconResName = iconName, iconEmoji = "�", gradientColors = gradientColors)
+                    }
                 }
             }
 

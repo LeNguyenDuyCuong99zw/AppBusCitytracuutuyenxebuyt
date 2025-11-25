@@ -27,6 +27,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.NavType
 import com.map.buscity.ui.news.NewsScreen
 import com.map.buscity.ui.favorite.FavoriteScreen
+import com.map.buscity.ui.help.HelpScreen
 import com.map.buscity.util.RouteResultsStore
 import org.json.JSONArray
 import org.json.JSONObject
@@ -94,6 +95,10 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("news") {
                                 NewsScreen(navController)
+                            }
+                            // Help / hướng dẫn dùng App
+                            composable("help") {
+                                HelpScreen(navController)
                             }
                             composable("search") {
                                 com.map.buscity.ui.home.SearchScreen(navController)
