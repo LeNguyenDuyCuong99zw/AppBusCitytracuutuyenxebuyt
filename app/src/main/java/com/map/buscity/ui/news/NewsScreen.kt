@@ -35,6 +35,8 @@ import com.map.buscity.R
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.alpha
+import com.map.buscity.ui.account.AccountPreferences
+import kotlinx.coroutines.launch
 
 
 
@@ -46,6 +48,10 @@ data class NotificationItem(val title: String, val image: Int, val date: String,
 fun NewsScreen(navController: NavController) {
     var selectedTab by remember { mutableStateOf(0) }         // tabs: thông báo / tin tức
     val tabs = listOf("Thông báo", "Tin tức")
+    val context = navController.context
+    val scope = rememberCoroutineScope()
+    val notificationsEnabled by AccountPreferences.notifications(context).collectAsState(initial = true)
+    val darkPref by AccountPreferences.darkTheme(context).collectAsState(initial = false)
 
     // Đồng bộ bottom bar theo route hiện tại
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -221,8 +227,57 @@ fun NewsScreen(navController: NavController) {
 
             // Nội dung tab
             when (selectedTab) {
-                0 -> NotificationGridList()
+                0 -> {
+                    if (notificationsEnabled) {
+                        NotificationGridList()
+                    } else {
+                        NotificationDisabledCard(
+                            onEnable = {
+                                scope.launch {
+                                    AccountPreferences.saveSettings(context, darkPref, true, "vi")
+                                }
+                            }
+                        )
+                    }
+                }
                 1 -> NewsList()
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationDisabledCard(onEnable: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Thông báo đang tắt",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    "Bật lại thông báo để xem cập nhật lộ trình và tin quan trọng.",
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                Button(onClick = onEnable, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
+                    Text("Bật lại thông báo", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
