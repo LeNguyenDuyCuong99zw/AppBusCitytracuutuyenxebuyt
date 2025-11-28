@@ -32,6 +32,10 @@ object AccountPreferences {
     private val KEY_RATING_FEEDBACK = stringPreferencesKey("rating_feedback_list") // pipe-separated JSON-lite
     private val KEY_RATING_DELETED_BUFFER = stringPreferencesKey("rating_feedback_deleted_buffer") // temp store for undo
 
+    // Auth / login
+    private val KEY_REMEMBER_ME = booleanPreferencesKey("remember_me")
+    private val KEY_LAST_EMAIL = stringPreferencesKey("last_email")
+
     // Profile getters
     fun profileName(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_NAME] ?: "" }
     fun profilePhone(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_PROFILE_PHONE] ?: "" }
@@ -70,6 +74,17 @@ object AccountPreferences {
 
     suspend fun resetSettings(context: Context) {
         saveSettings(context, dark = false, noti = true, lang = "vi")
+    }
+
+    // Auth helpers
+    fun rememberMe(context: Context): Flow<Boolean> = context.dataStore.data.map { it[KEY_REMEMBER_ME] ?: false }
+    fun lastEmail(context: Context): Flow<String> = context.dataStore.data.map { it[KEY_LAST_EMAIL] ?: "" }
+
+    suspend fun saveRememberMe(context: Context, remember: Boolean, email: String) {
+        context.dataStore.edit { prefs ->
+            prefs[KEY_REMEMBER_ME] = remember
+            prefs[KEY_LAST_EMAIL] = if (remember) email else ""
+        }
     }
 
     // Rating getters

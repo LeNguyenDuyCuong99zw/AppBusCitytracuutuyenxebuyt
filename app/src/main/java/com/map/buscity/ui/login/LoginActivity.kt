@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -44,6 +45,8 @@ import com.map.buscity.ui.register.RegisterActivity
 import com.map.buscity.ui.account.HomeActivity
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.map.buscity.ui.account.AccountPreferences
+import kotlinx.coroutines.launch
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -67,16 +70,44 @@ fun LoginScreen() {
     }
     val googleSignInClient = remember(gso) { GoogleSignIn.getClient(context, gso) }
     val auth = remember { FirebaseAuth.getInstance() }
+    val scope = rememberCoroutineScope()
+    val rememberPref by AccountPreferences.rememberMe(context).collectAsState(initial = false)
+    val lastEmailPref by AccountPreferences.lastEmail(context).collectAsState(initial = "")
 
     var isLoading by remember { mutableStateOf(false) }
     var loginError by remember { mutableStateOf<String?>(null) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var keepSignedIn by remember { mutableStateOf(false) }
+    var keepSignedIn by remember(rememberPref) { mutableStateOf(rememberPref) }
     var showResetDialog by remember { mutableStateOf(false) }
     var resetEmail by remember { mutableStateOf("") }
     var resetSending by remember { mutableStateOf(false) }
+    var autoNavigated by remember { mutableStateOf(false) }
+
+    // Prefill email if user chose "remember me"
+    LaunchedEffect(rememberPref, lastEmailPref) {
+        if (rememberPref && email.isBlank() && lastEmailPref.isNotBlank()) {
+            email = lastEmailPref
+        }
+    }
+
+    // If already signed in and remember-me enabled, skip login screen
+    LaunchedEffect(rememberPref, auth.currentUser) {
+        if (rememberPref && auth.currentUser != null && !autoNavigated) {
+            autoNavigated = true
+            val user = auth.currentUser
+            val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
+            val avatar = user?.photoUrl?.toString() ?: ""
+            context.startActivity(
+                Intent(context, HomeActivity::class.java).apply {
+                    putExtra("userName", name)
+                    putExtra("avatarUrl", avatar)
+                }
+            )
+            activity?.finish()
+        }
+    }
 
     // Hàm helper: chuyển mã lỗi Google thành thông báo tiếng Việt dễ hiểu
     fun mapGoogleError(code: Int, raw: String?): String {
@@ -98,6 +129,7 @@ fun LoginScreen() {
             val token = account.idToken
             if (token.isNullOrBlank()) {
                 Toast.makeText(context, "Thiếu web client ID hoặc SHA-1/SHA-256 chưa khai báo trong Firebase", Toast.LENGTH_LONG).show()
+                isLoading = false
                 return@rememberLauncherForActivityResult
             }
             val credential = GoogleAuthProvider.getCredential(token, null)
@@ -108,6 +140,9 @@ fun LoginScreen() {
                     val user = auth.currentUser
                     val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
                     val avatar = user?.photoUrl?.toString() ?: ""
+                    scope.launch {
+                        AccountPreferences.saveRememberMe(context, keepSignedIn, if (keepSignedIn) (user?.email ?: email.trim()) else "")
+                    }
                     context.startActivity(
                         Intent(context, HomeActivity::class.java).apply {
                             putExtra("userName", name)
@@ -120,6 +155,7 @@ fun LoginScreen() {
                 }
             }
         } catch (e: ApiException) {
+            isLoading = false
             Toast.makeText(context, mapGoogleError(e.statusCode, e.localizedMessage), Toast.LENGTH_LONG).show()
         }
     }
@@ -231,6 +267,9 @@ fun LoginScreen() {
                             val user = auth.currentUser
                             val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
                             val avatar = user?.photoUrl?.toString() ?: ""
+                            scope.launch {
+                                AccountPreferences.saveRememberMe(context, keepSignedIn, if (keepSignedIn) email.trim() else "")
+                            }
                             context.startActivity(
                                 Intent(context, HomeActivity::class.java).apply {
                                     putExtra("userName", name)
@@ -244,7 +283,10 @@ fun LoginScreen() {
                 },
                 shape = RoundedCornerShape(40.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA5F2C2)),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Text(if (isLoading) "Đang đăng nhập..." else "Đăng nhập", color = Color.Black, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
@@ -264,6 +306,7 @@ fun LoginScreen() {
                     if (activity == null) {
                         Toast.makeText(context, "Context error", Toast.LENGTH_SHORT).show()
                     } else {
+                        isLoading = true
                         // Dọn phiên Google trước khi đăng nhập để tránh dính tài khoản cũ
                         googleSignInClient.signOut().addOnCompleteListener {
                             googleSignInLauncher.launch(googleSignInClient.signInIntent)
@@ -272,7 +315,10 @@ fun LoginScreen() {
                 },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                enabled = !isLoading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Image(painter = painterResource(id = R.drawable.ic_google), contentDescription = null, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(8.dp))

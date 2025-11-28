@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import com.map.buscity.ui.home.HomeScreen
 import com.map.buscity.ui.routes.BusRouteScreen
+import com.map.buscity.ui.map.StopMapScreen
 import com.map.buscity.ui.home.RouteScreen
 import com.map.buscity.ui.home.RouteResultsScreen
 import androidx.navigation.navArgument
@@ -43,6 +44,10 @@ fun AppNavigation(
                 },
                 onRouteClick = { id -> navController.navigate("route/$id") }
             )
+        }
+        composable("stop_map") {
+            // Minimal stop map screen — uses our StopMapScreen composable and pops back on close
+            StopMapScreen(onBack = { navController.popBackStack() })
         }
         composable(
             route = "directions?title={title}&lat={lat}&lng={lng}&kind={kind}&originLat={originLat}&originLng={originLng}&originTitle={originTitle}&originKind={originKind}",

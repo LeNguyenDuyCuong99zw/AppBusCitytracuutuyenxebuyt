@@ -137,6 +137,10 @@ class MainActivity : ComponentActivity() {
                                     onOpenRoute = { navController.navigate("routes") }
                                 )
                             }
+                            // StopMapScreen route (minimal map view for stops)
+                            composable("stop_map") {
+                                com.map.buscity.ui.map.StopMapScreen(onBack = { navController.popBackStack() })
+                            }
                             composable("map/route/{routeNumber}") { backStackEntry ->
                                 val routeNumber = backStackEntry.arguments?.getString("routeNumber")
                                 com.map.buscity.ui.map.MapScreen(
