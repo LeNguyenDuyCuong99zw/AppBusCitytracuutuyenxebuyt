@@ -35,23 +35,37 @@ import com.map.buscity.R
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.alpha
-import com.map.buscity.ui.account.AccountPreferences
-import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.tasks.await
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 
 
 
-data class NotificationItem(val title: String, val image: Int, val date: String, val icon: Int )
+data class NewsItem(
+    var id: String = "",
+    var title: String = "",
+    var content: String = "",
+    var imageUrl: String? = null,
+    var date: String? = null
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(navController: NavController) {
     var selectedTab by remember { mutableStateOf(0) }         // tabs: thông báo / tin tức
     val tabs = listOf("Thông báo", "Tin tức")
-    val context = navController.context
-    val scope = rememberCoroutineScope()
-    val notificationsEnabled by AccountPreferences.notifications(context).collectAsState(initial = true)
-    val darkPref by AccountPreferences.darkTheme(context).collectAsState(initial = false)
 
     // Đồng bộ bottom bar theo route hiện tại
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -227,130 +241,35 @@ fun NewsScreen(navController: NavController) {
 
             // Nội dung tab
             when (selectedTab) {
-                0 -> {
-                    if (notificationsEnabled) {
-                        NotificationGridList()
-                    } else {
-                        NotificationDisabledCard(
-                            onEnable = {
-                                scope.launch {
-                                    AccountPreferences.saveSettings(context, darkPref, true, "vi")
-                                }
-                            }
-                        )
-                    }
-                }
-                1 -> NewsList()
+                0 -> NotificationGridList()
+                1 -> NotificationGridList()
             }
         }
     }
 }
-
-@Composable
-private fun NotificationDisabledCard(onEnable: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Thông báo đang tắt",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
-                )
-                Text(
-                    "Bật lại thông báo để xem cập nhật lộ trình và tin quan trọng.",
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-                Button(onClick = onEnable, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) {
-                    Text("Bật lại thông báo", color = Color.White, fontWeight = FontWeight.SemiBold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun NewsList() {
-    val items = listOf(
-        Triple("Tuyến buýt 03 đổi lộ trình từ 01/11/2025", "01/11/2025", R.drawable.ic_notification),
-        Triple("Thêm tuyến Metro số 2 khởi công giai đoạn mới", "02/11/2025", R.drawable.ic_notification),
-        Triple("Triển khai hệ thống vé điện tử toàn thành phố", "03/11/2025", R.drawable.ic_notification)
-    )
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(items) { (title, date, icon) ->
-            NewsCardWithIcon(title, date, icon)
-        }
-    }
-}
-
-@Composable
-fun NewsCardWithIcon(title: String, date: String, icon: Int) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = icon),
-                contentDescription = "Notification Icon",
-                modifier = Modifier
-                    .size(44.dp)
-                    .padding(end = 8.dp)
-            )
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = date,
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-            }
-        }
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationGridList() {
-    val notifications = listOf(
-        NotificationItem("Thay đổi lộ trình tuyến số 03", R.drawable.bus1, "05/11/2025", R.drawable.ic_notification),
-        NotificationItem("Thêm chuyến giờ cao điểm", R.drawable.bus1, "04/11/2025", R.drawable.ic_notification),
-        NotificationItem("Cập nhật biểu giá mới", R.drawable.bus1, "03/11/2025", R.drawable.ic_notification),
-        NotificationItem("Mở tuyến mới liên quận", R.drawable.bus1, "02/11/2025", R.drawable.ic_notification),
-        NotificationItem("Cải thiện tần suất tuyến 07", R.drawable.bus1, "01/11/2025", R.drawable.ic_notification),
-        NotificationItem("Thử nghiệm tuyến điện tử mới", R.drawable.bus1, "30/10/2025", R.drawable.ic_notification)
-    )
+    val news by produceState(initialValue = emptyList<NewsItem>(), key1 = Unit) {
+        val dbRef = FirebaseDatabase.getInstance().reference.child("news")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<NewsItem>()
+                snapshot.children.forEach { child ->
+                    val item = child.getValue(NewsItem::class.java) ?: NewsItem()
+                    item.id = child.key ?: ""
+                    list.add(item)
+                }
+                value = list.sortedByDescending { it.date ?: "" }
+            }
+
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        dbRef.addValueEventListener(listener)
+        awaitDispose { dbRef.removeEventListener(listener) }
+    }
+
+    var selected by remember { mutableStateOf<NewsItem?>(null) }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -360,29 +279,136 @@ fun NotificationGridList() {
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        items(notifications) { item ->
-            NotificationGridCard(item)
+        items(news) { item ->
+            NotificationGridCard(item) { selected = it }
+        }
+    }
+
+    if (selected != null) {
+        Dialog(
+            onDismissRequest = { selected = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = selected!!.title,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { selected = null }) {
+                                Icon(Icons.Default.Close, contentDescription = "Close")
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color(0xFF2E7D32),
+                            titleContentColor = Color.White,
+                            navigationIconContentColor = Color.White
+                        )
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // Tiêu đề lớn
+                        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp)) {
+                            Text(
+                                text = selected!!.title,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF2E7D32),
+                                lineHeight = 28.sp
+                            )
+                        }
+
+                        // Thời gian nhỏ
+                        selected!!.date?.let { d ->
+                            Row(
+                                modifier = Modifier.padding(start = 20.dp, end = 20.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "• $d",
+                                    color = Color.Gray,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Normal
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Ảnh
+                        if (!selected!!.imageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = selected!!.imageUrl,
+                                contentDescription = selected!!.title,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(280.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        // Nội dung
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text(
+                                text = selected!!.content,
+                                fontSize = 14.sp,
+                                lineHeight = 22.sp,
+                                color = Color.Black.copy(alpha = 0.85f)
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun NotificationGridCard(item: NotificationItem) {
+fun NotificationGridCard(item: NewsItem, onClick: (NewsItem) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
+            .height(200.dp)
+            .clickable { onClick(item) },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                painter = painterResource(id = item.image),
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            if (!item.imageUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                // Fallback: blank background
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.LightGray))
+            }
 
             // Overlay gradient for readability
             Box(
@@ -412,14 +438,9 @@ fun NotificationGridCard(item: NotificationItem) {
                 )
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = item.icon),
-                        contentDescription = "Icon",
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(Modifier.width(6.dp))
+                    // date
                     Text(
-                        text = item.date,
+                        text = item.date ?: "",
                         fontSize = 12.sp,
                         color = Color.White.copy(alpha = 0.9f)
                     )
