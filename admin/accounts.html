@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusCity Admin - Quản lý Tài khoản</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>BusCity Admin</h1>
+        <div class="header-user">
+          <span id="user-email"></span>
+          <button id="signout-btn">Đăng xuất</button>
+          <a href="index.html" class="header-link">← Quay lại</a>
+        </div>
+      </header>
+
+      <main>
+        <section id="admin-manage">
+          <h2>Quản lý Admins</h2>
+          <p style="font-size: 13px; color: #555">
+            Thêm/xóa UID để cấp quyền quản trị cho người khác.
+          </p>
+          <form
+            id="add-admin-form"
+            style="
+              display: flex;
+              gap: 8px;
+              align-items: center;
+              margin-bottom: 8px;
+            "
+          >
+            <input
+              id="admin-uid-input"
+              type="text"
+              placeholder="UID (dán vào)"
+              style="
+                flex: 1;
+                padding: 8px;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+              "
+            />
+            <button id="fill-my-uid-btn" type="button">Dán UID của tôi</button>
+            <button id="add-admin-btn" type="submit">Thêm Admin</button>
+          </form>
+          <div id="admin-list"></div>
+          <div id="auth-error" class="auth-error hidden"></div>
+        </section>
+      </main>
+
+      <footer>
+        <small
+          >Ứng dụng quản trị đơn giản — sử dụng Firebase Realtime Database &
+          Auth</small
+        >
+      </footer>
+    </div>
+
+    <script type="module" src="accounts.js"></script>
+  </body>
+</html>
