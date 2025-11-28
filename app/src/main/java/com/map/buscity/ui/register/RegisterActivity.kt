@@ -35,7 +35,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.util.Patterns
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
@@ -45,9 +44,6 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.map.buscity.R
 import com.map.buscity.ui.login.LoginActivity
 import com.map.buscity.ui.account.HomeActivity
-import com.map.buscity.ui.account.AccountPreferences
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
 
 class RegisterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,7 +59,6 @@ class RegisterActivity : ComponentActivity() {
 fun RegisterScreen() {
     val context = LocalContext.current
     val activity = context as? Activity
-    val scope = rememberCoroutineScope()
 
     val webClientId = stringResource(id = R.string.default_web_client_id)
     val gso = remember(webClientId) {
@@ -85,13 +80,7 @@ fun RegisterScreen() {
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
             val account = task.getResult(ApiException::class.java)
-            val token = account.idToken
-            if (token.isNullOrBlank()) {
-                isLoading = false
-                Toast.makeText(context, "Không thể lấy token Google. Kiểm tra web client ID/SHA-1 trên Firebase", Toast.LENGTH_LONG).show()
-                return@rememberLauncherForActivityResult
-            }
-            val credential = GoogleAuthProvider.getCredential(token, null)
+            val credential = GoogleAuthProvider.getCredential(account.idToken, null)
             isLoading = true
             auth.signInWithCredential(credential).addOnCompleteListener { t ->
                 isLoading = false
@@ -99,9 +88,6 @@ fun RegisterScreen() {
                     val user = auth.currentUser
                     val name = user?.displayName ?: user?.email?.substringBefore("@") ?: ""
                     val avatar = user?.photoUrl?.toString() ?: ""
-                    scope.launch {
-                        AccountPreferences.saveRememberMe(context, remember = true, email = user?.email ?: account.email ?: "")
-                    }
                     context.startActivity(
                         Intent(context, HomeActivity::class.java).apply {
                             putExtra("userName", if (name.isNotEmpty()) name else (account.displayName ?: account.email?.substringBefore("@") ?: ""))
@@ -113,7 +99,6 @@ fun RegisterScreen() {
                 }
             }
         } catch (e: ApiException) {
-            isLoading = false
             Toast.makeText(context, e.localizedMessage ?: "Google sign-in cancelled", Toast.LENGTH_SHORT).show()
         }
     }
@@ -241,48 +226,27 @@ fun RegisterScreen() {
             // Sign up button
             Button(
                 onClick = {
-                    val trimmedName = name.trim()
-                    val trimmedEmail = email.trim()
-                    val trimmedPassword = password.trim()
-                    if (trimmedName.isBlank() || trimmedEmail.isBlank() || trimmedPassword.isBlank() || !agreeTerms) {
+                    if (name.isBlank() || email.isBlank() || password.isBlank() || !agreeTerms) {
                         Toast.makeText(context, "Vui lòng nhập đầy đủ thông tin và đồng ý điều khoản", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    if (!Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches()) {
-                        Toast.makeText(context, "Email không hợp lệ", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
-                    if (trimmedPassword.length < 6) {
+                    if (password.length < 6) {
                         Toast.makeText(context, "Mật khẩu phải từ 6 ký tự", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     isLoading = true
-                    auth.createUserWithEmailAndPassword(trimmedEmail, trimmedPassword)
+                    auth.createUserWithEmailAndPassword(email.trim(), password)
                         .addOnCompleteListener { task ->
                             if (task.isSuccessful) {
-                                val currentUser = auth.currentUser
-                                if (currentUser == null) {
-                                    isLoading = false
-                                    Toast.makeText(context, "Không thể tạo phiên đăng nhập", Toast.LENGTH_SHORT).show()
-                                    return@addOnCompleteListener
-                                }
                                 // Cập nhật displayName = name
                                 val profile = UserProfileChangeRequest.Builder()
-                                    .setDisplayName(trimmedName.ifBlank { trimmedEmail.substringBefore("@") })
+                                    .setDisplayName(name.trim())
                                     .build()
-                                currentUser.updateProfile(profile).addOnCompleteListener { updateTask ->
-                                    if (!updateTask.isSuccessful) {
-                                        Toast.makeText(context, "Không thể lưu tên hiển thị", Toast.LENGTH_SHORT).show()
-                                    }
+                                auth.currentUser?.updateProfile(profile)?.addOnCompleteListener {
                                     isLoading = false
-                                    val finalName = currentUser.displayName
-                                        ?: trimmedName.ifBlank { trimmedEmail.substringBefore("@") }
                                     val intent = Intent(context, HomeActivity::class.java).apply {
-                                        putExtra("userName", finalName)
-                                        putExtra("avatarUrl", currentUser.photoUrl?.toString() ?: "")
-                                    }
-                                    scope.launch {
-                                        AccountPreferences.saveRememberMe(context, remember = true, email = trimmedEmail)
+                                        putExtra("userName", name.ifEmpty { email.substringBefore("@") })
+                                        putExtra("avatarUrl", auth.currentUser?.photoUrl?.toString() ?: "")
                                     }
                                     context.startActivity(intent)
                                 }
@@ -295,7 +259,6 @@ fun RegisterScreen() {
                 },
                 shape = RoundedCornerShape(40.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA5F2C2)),
-                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)
@@ -323,16 +286,12 @@ fun RegisterScreen() {
                     if (activity == null) {
                         Toast.makeText(context, "Context error", Toast.LENGTH_SHORT).show()
                     } else {
-                        isLoading = true
-                        googleSignInClient.signOut().addOnCompleteListener {
-                            val intent = googleSignInClient.signInIntent
-                            googleSignInLauncher.launch(intent)
-                        }
+                        val intent = googleSignInClient.signInIntent
+                        googleSignInLauncher.launch(intent)
                     }
                 },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
-                enabled = !isLoading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp)

@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +20,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -33,25 +31,13 @@ import com.google.firebase.auth.UserProfileChangeRequest
 import com.map.buscity.R
 import kotlinx.coroutines.launch
 import com.map.buscity.ui.account.AccountPreferences
-import androidx.compose.runtime.DisposableEffect
-import com.map.buscity.ui.login.LoginActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
-    val auth = remember { FirebaseAuth.getInstance() }
-    var user by remember { mutableStateOf(auth.currentUser) }
+    val user = remember { FirebaseAuth.getInstance().currentUser }
     val scope = rememberCoroutineScope()
-
-    // Observe auth changes; hide data when signed out
-    DisposableEffect(Unit) {
-        val listener = FirebaseAuth.AuthStateListener { firebaseAuth ->
-            user = firebaseAuth.currentUser
-        }
-        auth.addAuthStateListener(listener)
-        onDispose { auth.removeAuthStateListener(listener) }
-    }
 
     // DataStore flows
     val nameDs by AccountPreferences.profileName(context).collectAsState(initial = "")
@@ -60,13 +46,13 @@ fun ProfileScreen(navController: NavController) {
     val birthdayDs by AccountPreferences.profileBirthday(context).collectAsState(initial = "")
     val avatarDs by AccountPreferences.profileAvatar(context).collectAsState(initial = "")
 
-    var displayName by remember(nameDs, user) { mutableStateOf(if (user != null && nameDs.isNotBlank()) nameDs else (user?.displayName ?: "")) }
+    var displayName by remember(nameDs) { mutableStateOf(if (nameDs.isNotBlank()) nameDs else (user?.displayName ?: "")) }
     val email = user?.email ?: ""
-    var phone by remember(phoneDs, user) { mutableStateOf(if (user != null) phoneDs else "") }
-    var gender by remember(genderDs, user) { mutableStateOf(if (user != null) genderDs.ifBlank { "male" } else "male") }
-    var birthday by remember(birthdayDs, user) { mutableStateOf(if (user != null) birthdayDs else "") }
+    var phone by remember(phoneDs) { mutableStateOf(phoneDs) }
+    var gender by remember(genderDs) { mutableStateOf(genderDs.ifBlank { "male" }) }
+    var birthday by remember(birthdayDs) { mutableStateOf(birthdayDs) }
     var phoneError by remember { mutableStateOf<String?>(null) }
-    var localAvatar by remember(avatarDs, user) { mutableStateOf(if (user != null) avatarDs else "") }
+    var localAvatar by remember(avatarDs) { mutableStateOf(avatarDs) }
 
     // Image picker launcher using OpenDocument to persist URI permission across app restarts
     val pickImageLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -94,26 +80,6 @@ fun ProfileScreen(navController: NavController) {
                 launchSingleTop = true
             }
         }
-    }
-
-    if (user == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(72.dp), tint = Color.Gray)
-            Spacer(Modifier.height(12.dp))
-            Text("Bạn cần đăng nhập để xem thông tin cá nhân", fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = { context.startActivity(Intent(context, LoginActivity::class.java)) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-            ) { Text("Đăng nhập", color = Color.White, fontWeight = FontWeight.SemiBold) }
-        }
-        return
     }
 
     Scaffold(
@@ -146,7 +112,7 @@ fun ProfileScreen(navController: NavController) {
                 ) {
                     val showAvatarModel: Any? = when {
                         localAvatar.isNotBlank() -> localAvatar
-                        user?.photoUrl != null -> user?.photoUrl
+                        user?.photoUrl != null -> user.photoUrl
                         else -> null
                     }
                     if (showAvatarModel != null) {
