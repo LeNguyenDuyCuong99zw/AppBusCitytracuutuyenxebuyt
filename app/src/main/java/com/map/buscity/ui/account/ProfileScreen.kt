@@ -97,21 +97,35 @@ fun ProfileScreen(navController: NavController) {
     }
 
     if (user == null) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(72.dp), tint = Color.Gray)
-            Spacer(Modifier.height(12.dp))
-            Text("Bạn cần đăng nhập để xem thông tin cá nhân", fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-            Spacer(Modifier.height(16.dp))
-            Button(
-                onClick = { context.startActivity(Intent(context, LoginActivity::class.java)) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-            ) { Text("Đăng nhập", color = Color.White, fontWeight = FontWeight.SemiBold) }
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Thông tin cá nhân") },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = null)
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(72.dp), tint = Color.Gray)
+                Spacer(Modifier.height(12.dp))
+                Text("Bạn cần đăng nhập để xem thông tin cá nhân", fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { context.startActivity(Intent(context, LoginActivity::class.java)) },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) { Text("Đăng nhập", color = Color.White, fontWeight = FontWeight.SemiBold) }
+            }
         }
         return
     }

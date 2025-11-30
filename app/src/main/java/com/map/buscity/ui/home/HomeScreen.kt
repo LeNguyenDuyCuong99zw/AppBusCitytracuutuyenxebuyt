@@ -337,8 +337,14 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                 items(features) { feature ->
                     val (label, iconName, gradientColors) = feature
                     Box(modifier = Modifier.clickable {
-                        if (label == "Hướng dẫn dùng App") {
-                            navController.navigate("help")
+                        // Điều hướng tương ứng cho từng tính năng
+                        when (label) {
+                            "Tìm đường" -> navController.navigate("search") { launchSingleTop = true }
+                            "Tra cứu" -> navController.navigate("routes") { launchSingleTop = true }
+                            "Trạm xung quanh" -> navController.navigate("stop_map") { launchSingleTop = true }
+                            "Đánh giá góp ý" -> navController.navigate("account/rate") { launchSingleTop = true }
+                            "Tin tức" -> navController.navigate("news") { launchSingleTop = true }
+                            "Hướng dẫn dùng App" -> navController.navigate("help") { launchSingleTop = true }
                         }
                     }) {
                         FeatureItem(label = label, iconResName = iconName, iconEmoji = "�", gradientColors = gradientColors)
