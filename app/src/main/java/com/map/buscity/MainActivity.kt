@@ -343,7 +343,6 @@ class MainActivity : ComponentActivity() {
                             composable("account/settings") { com.map.buscity.ui.account.SettingsScreen(navController) }
                             composable("account/datasync") { com.map.buscity.ui.account.DataSyncScreen(navController) }
                             composable("account/rate") { com.map.buscity.ui.account.RateAppScreen(navController) }
-                            composable("account/about") { com.map.buscity.ui.account.AboutScreen(navController) }
                         }
                         }
                     }

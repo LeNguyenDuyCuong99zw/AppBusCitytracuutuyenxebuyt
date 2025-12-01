@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -59,7 +58,6 @@ import com.map.buscity.ui.account.ProfileScreen
 import com.map.buscity.ui.account.SettingsScreen
 import com.map.buscity.ui.account.DataSyncScreen
 import com.map.buscity.ui.account.RateAppScreen
-import com.map.buscity.ui.account.AboutScreen
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.collectAsState
@@ -86,7 +84,6 @@ class HomeActivity : ComponentActivity() {
                     composable("account/settings") { SettingsScreen(navController) }
                     composable("account/datasync") { DataSyncScreen(navController) }
                     composable("account/rate") { RateAppScreen(navController) }
-                    composable("account/about") { AboutScreen(navController) }
                 }
             }
         }
@@ -381,11 +378,6 @@ fun AccountScreen(navController: NavController) {
                 // Đánh giá app
                 InfoRow(Icons.Default.Star, "Đánh giá ứng dụng") {
                     navController.navigate("account/rate")
-                }
-
-                // Thông tin công ty / app
-                InfoRow(Icons.Default.Info, "Thông tin công ty") {
-                    navController.navigate("account/about")
                 }
 
                 // Mục Đăng xuất chỉ hiển thị khi đã đăng nhập
