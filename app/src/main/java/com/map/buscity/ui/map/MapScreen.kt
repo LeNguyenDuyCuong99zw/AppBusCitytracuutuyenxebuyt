@@ -15,6 +15,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,6 +79,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import android.provider.Settings
 import com.map.buscity.ui.home.rememberLocationPermissionState
+import java.util.Calendar
 
 /**
  * Find the closest point on a route to a given stop location
@@ -288,6 +291,31 @@ private fun addPolylineWithFade(
     }
 }
 
+// Helper composable for displaying info rows with labels and values
+@Composable
+private fun InfoRow(
+    label: String,
+    value: String,
+    valueColor: Color = Color.Black,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = Color(0xFF999999),
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            value,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = valueColor
+        )
+    }
+}
+
 // Enum class cho các vị trí
 enum class Location(val cityName: String, val latLng: LatLng) {
     TPHCM("TP Hồ Chí Minh", LatLng(10.762622, 106.660172)),
@@ -476,6 +504,9 @@ fun MapScreen(
 
     // State để theo dõi xem đang hiển thị lượt đi hay lượt về
     var isReturn by remember { mutableStateOf(false) }
+    
+    // Collect routes from ViewModel
+    val routes by viewModel.routes.collectAsState()
 
     // Thu thập các điểm dừng cho tuyến được chọn. Khi isReturn là true, chuyển đổi
     // BusStopReturn -> BusStop để có thể sử dụng lại code vẽ bản đồ
@@ -637,8 +668,156 @@ fun MapScreen(
                         }
 
                         when (selectedTabLocal) {
-                            0 -> Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
-                                Text(text = "Biểu đồ giờ (placeholder)")
+                            0 -> {
+                                // BIỂU ĐỒ GIỜ (Schedule)
+                                val routeNum = routeNumber ?: ""
+                                val route = remember(routeNum, stops) {
+                                    routes.find { it.routeNumber == routeNum }
+                                }
+                                
+                                if (route != null) {
+                                    // Get current time
+                                    val currentTime = remember {
+                                        val calendar = java.util.Calendar.getInstance()
+                                        String.format("%02d:%02d", calendar.get(java.util.Calendar.HOUR_OF_DAY), calendar.get(java.util.Calendar.MINUTE))
+                                    }
+                                    
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(280.dp)
+                                            .padding(12.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        // Start time
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(bottom = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "Giờ chạy:",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.width(80.dp)
+                                            )
+                                            Text(
+                                                "${route.startTime} - ${route.endTime}",
+                                                fontSize = 14.sp,
+                                                color = Color(0xFF2ECC71),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Divider()
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        // Time grid - generate times every 15 minutes
+                                        Text(
+                                            "Lịch chạy (mỗi 15 phút) - Giờ hiện tại: $currentTime",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
+                                        
+                                        // Parse start and end times
+                                        val startParts = route.startTime.split(":")
+                                        val endParts = route.endTime.split(":")
+                                        val startHour = startParts.getOrNull(0)?.toIntOrNull() ?: 5
+                                        val startMin = startParts.getOrNull(1)?.toIntOrNull() ?: 0
+                                        val endHour = endParts.getOrNull(0)?.toIntOrNull() ?: 20
+                                        val endMin = endParts.getOrNull(1)?.toIntOrNull() ?: 15
+                                        
+                                        val times = mutableListOf<String>()
+                                        var currentHour = startHour
+                                        var currentMin = startMin
+                                        
+                                        while (currentHour < endHour || (currentHour == endHour && currentMin <= endMin)) {
+                                            times.add(String.format("%02d:%02d", currentHour, currentMin))
+                                            currentMin += 15
+                                            if (currentMin >= 60) {
+                                                currentMin -= 60
+                                                currentHour += 1
+                                            }
+                                        }
+                                        
+                                        // Display times in a grid (4 columns)
+                                        Column {
+                                            times.chunked(4).forEach { rowTimes ->
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(bottom = 8.dp),
+                                                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    rowTimes.forEach { time ->
+                                                        val isCurrentTime = time == currentTime
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .background(
+                                                                    color = if (isCurrentTime) Color(0xFF2ECC71) else Color(0xFFF0F7FF),
+                                                                    shape = RoundedCornerShape(8.dp)
+                                                                )
+                                                                .border(
+                                                                    width = if (isCurrentTime) 2.dp else 0.dp,
+                                                                    color = if (isCurrentTime) Color(0xFF27AE60) else Color.Transparent,
+                                                                    shape = RoundedCornerShape(8.dp)
+                                                                )
+                                                                .padding(8.dp),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                time,
+                                                                fontSize = 12.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isCurrentTime) Color.White else Color(0xFF2ECC71)
+                                                            )
+                                                        }
+                                                    }
+                                                    
+                                                    // Fill empty spaces in last row
+                                                    repeat(4 - rowTimes.size) {
+                                                        Box(modifier = Modifier.weight(1f))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                        
+                                        // Fare info
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(
+                                                    color = Color(0xFFFEF5E7),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                )
+                                                .padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "Giá vé:",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.width(70.dp)
+                                            )
+                                            Text(
+                                                "${route.price} VND",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFF39C12)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+                                        Text(text = "Chưa chọn tuyến")
+                                    }
+                                }
                             }
 
                             // TRẠM DỪNG: timeline-style list similar to provided mock
@@ -754,7 +933,170 @@ fun MapScreen(
                                 }
                             }
 
-                            2 -> Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { Text(text = "Thông tin tuyến (placeholder)") }
+                            2 -> {
+                                // THÔNG TIN (Information)
+                                val routeNum = routeNumber ?: ""
+                                val route = remember(routeNum, stops) {
+                                    routes.find { it.routeNumber == routeNum }
+                                }
+                                
+                                if (route != null) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(400.dp)
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                        // Header section with route number and rating - light background
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(Color(0xFFF0F7F4), shape = RoundedCornerShape(12.dp))
+                                                .padding(16.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                                            ) {
+                                                Column {
+                                                    Text(
+                                                        "Tuyến số",
+                                                        fontSize = 11.sp,
+                                                        color = Color.Gray,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                    Text(
+                                                        route.routeNumber,
+                                                        fontSize = 24.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color(0xFF2ECC71)
+                                                    )
+                                                }
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    Text(
+                                                        "Đánh giá",
+                                                        fontSize = 11.sp,
+                                                        color = Color.Gray,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            String.format("%.1f", route.rating),
+                                                            fontSize = 20.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Text(
+                                                            " ⭐",
+                                                            fontSize = 18.sp,
+                                                            modifier = Modifier.padding(start = 4.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        
+                                        // Content section with padding
+                                        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                            // Route name
+                                            InfoRow(
+                                                label = "Tên tuyến",
+                                                value = route.routeName
+                                            )
+                                            
+                                            // Operating hours
+                                            InfoRow(
+                                                label = "Thời gian hoạt động",
+                                                value = "${route.startTime} - ${route.endTime}"
+                                            )
+                                            
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Divider(color = Color(0xFFE0E0E0), thickness = 1.dp)
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            
+                                            // Pricing section
+                                            Text(
+                                                "GIÁ VÉ",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF757575),
+                                                letterSpacing = 0.5.sp
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            
+                                            InfoRow(
+                                                label = "Giá vé thường",
+                                                value = "${route.price} VND",
+                                                valueColor = Color(0xFF2ECC71)
+                                            )
+                                            
+                                            if (route.studentPrice > 0) {
+                                                InfoRow(
+                                                    label = "Giá vé (Học sinh/sinh viên)",
+                                                    value = "${route.studentPrice} VND"
+                                                )
+                                            }
+                                            
+                                            if (route.monthlyPass30Price > 0) {
+                                                InfoRow(
+                                                    label = "Giá vé tập (30 vé)",
+                                                    value = "${route.monthlyPass30Price} VND"
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            Divider(color = Color(0xFFE0E0E0), thickness = 1.dp)
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            
+                                            // Operation section
+                                            Text(
+                                                "THÔNG TIN HOẠT ĐỘNG",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF757575),
+                                                letterSpacing = 0.5.sp
+                                            )
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            
+                                            InfoRow(
+                                                label = "Loại tuyến",
+                                                value = route.routeType
+                                            )
+                                            
+                                            if (route.runTime != "0") {
+                                                InfoRow(
+                                                    label = "Thời gian chạy",
+                                                    value = route.runTime
+                                                )
+                                            }
+                                            
+                                            if (route.spacing != "0") {
+                                                InfoRow(
+                                                    label = "Giãn cách tuyến",
+                                                    value = route.spacing
+                                                )
+                                            }
+                                            
+                                            if (route.stops > 0) {
+                                                InfoRow(
+                                                    label = "Số chuyến/ngày",
+                                                    value = "${route.stops} chuyến"
+                                                )
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                        }
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+                                        Text(text = "Chưa chọn tuyến")
+                                    }
+                                }
+                            }
                             3 -> Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { Text(text = "Đánh giá (placeholder)") }
                         }
                     }
@@ -776,9 +1118,15 @@ fun MapScreen(
                                 try {
                                     mapLibreMap.setStyle("https://api.maptiler.com/maps/basic/style.json?key=GmggpnnxNtIGoPd9Po6l")
                                     // Create a scaled Icon from bitmap so markers are small on the map
+                                    // Use metro logo for MRT1, bus logo for other routes
+                                    val logoResourceId = if (routeNumber == "MRT1") {
+                                        com.map.buscity.R.drawable.metro_tram
+                                    } else {
+                                        com.map.buscity.R.drawable.logo_tuyen
+                                    }
                                     val bitmapForward = android.graphics.BitmapFactory.decodeResource(
                                         context.resources,
-                                        com.map.buscity.R.drawable.logo_tuyen
+                                        logoResourceId
                                     )
                                     // Use the same forward logo for return direction so icons match
                                     val bitmapReturn = bitmapForward
@@ -1090,9 +1438,15 @@ fun MapScreen(
                                 mapView.getMapAsync { mapLibreMap ->
 
                                     // Recreate small icon for markers and the dot icon used when zoomed out
+                                    // Use metro logo for MRT1, bus logo for other routes
+                                    val logoResourceId2 = if (routeNumber == "MRT1") {
+                                        com.map.buscity.R.drawable.metro_tram
+                                    } else {
+                                        com.map.buscity.R.drawable.logo_tuyen
+                                    }
                                     val bitmapForward2 = android.graphics.BitmapFactory.decodeResource(
                                         context.resources,
-                                        com.map.buscity.R.drawable.logo_tuyen
+                                        logoResourceId2
                                     )
                                     // reuse forward bitmap so return uses same logo
                                     val bitmapReturn2 = bitmapForward2
