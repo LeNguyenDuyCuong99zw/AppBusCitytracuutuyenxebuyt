@@ -312,6 +312,15 @@ fun RouteScreen(
                                 if (localDestLat != null && localDestLng != null) {
                                     val origin = originState.value
                                     coroutineScope.launch {
+                                        // Clear old RouteResultsStore data before searching to avoid conflicts when user selects multiple routes
+                                        try {
+                                            com.map.buscity.util.RouteResultsStore.json = null
+                                            com.map.buscity.util.RouteResultsStore.originLat = null
+                                            com.map.buscity.util.RouteResultsStore.originLng = null
+                                            com.map.buscity.util.RouteResultsStore.destinationLat = null
+                                            com.map.buscity.util.RouteResultsStore.destinationLng = null
+                                        } catch (_: Exception) {}
+                                        
                                         // use DB stops when available, otherwise sample data
                                         val allStopsLocal = if (dbStopsState.value.isNotEmpty()) dbStopsState.value else SampleBusStopData.getSampleStops()
                                         // Prefer persisted route metadata when available in the ViewModel; otherwise derive from stops
@@ -363,6 +372,7 @@ fun RouteScreen(
                                         } catch (_: Exception) {}
 
                                         // Compute candidate routes (pair of BusRoute + isReturn flag)
+                                        // Increased from 600m to 1000m to find more routes
                                         val suggestions = withContext(Dispatchers.Default) {
                                             computeRoutesBetweenCoordsLocal(
                                                 combinedLocalStops,
@@ -371,7 +381,7 @@ fun RouteScreen(
                                                 origin.longitude,
                                                 localDestLat!!,
                                                 localDestLng!!,
-                                                600.0
+                                                1000.0
                                             )
                                         }
 
@@ -394,6 +404,20 @@ fun RouteScreen(
                                                 val nearestStart = if (stopsForRouteLocal.isNotEmpty()) findNearestStopToPoint(stopsForRouteLocal, origin.latitude, origin.longitude) else null
                                                 val nearestEnd = if (stopsForRouteLocal.isNotEmpty()) findNearestStopToPoint(stopsForRouteLocal, localDestLat!!, localDestLng!!) else null
 
+                                                // Extract all stops between start and end for routing display
+                                                val stopsForLeg = if (nearestStart != null && nearestEnd != null && stopsForRouteLocal.isNotEmpty()) {
+                                                    val stopsForRoute = stopsForRouteLocal.sortedBy { it.stopOrder }
+                                                    val sIdx = stopsForRoute.indexOfFirst { it.stopOrder == nearestStart.stopOrder }
+                                                    val eIdx = stopsForRoute.indexOfFirst { it.stopOrder == nearestEnd.stopOrder }
+                                                    if (sIdx >= 0 && eIdx >= 0) {
+                                                        stopsForRoute.subList(sIdx, (eIdx + 1).coerceAtMost(stopsForRoute.size))
+                                                    } else {
+                                                        emptyList()
+                                                    }
+                                                } else {
+                                                    emptyList()
+                                                }
+
                                                 val leg = com.map.buscity.data.RouteLeg(
                                                     routeNumber = routeMeta.routeNumber,
                                                     routeName = routeMeta.routeName,
@@ -402,7 +426,7 @@ fun RouteScreen(
                                                     startStopOrder = nearestStart?.stopOrder ?: 0,
                                                     endStopName = nearestEnd?.stopName ?: "",
                                                     endStopOrder = nearestEnd?.stopOrder ?: 0,
-                                                    stops = emptyList()
+                                                    stops = stopsForLeg
                                                 )
 
                                                 val walking = (nearestStart?.let { distanceMeters(origin.latitude, origin.longitude, it.lat, it.lng) } ?: 0.0) + (nearestEnd?.let { distanceMeters(localDestLat!!, localDestLng!!, it.lat, it.lng) } ?: 0.0)
@@ -421,9 +445,16 @@ fun RouteScreen(
                                         }
 
                                         // remove duplicate routeNumber entries: keep the one with smallest walkingDistance
+                                        // Prefer forward direction when both forward and return directions are available
                                         val dedupedResults = results
                                             .groupBy { it.legs.firstOrNull()?.routeNumber ?: "" }
-                                            .mapNotNull { (_, list) -> list.minByOrNull { it.walkingDistance } }
+                                            .mapNotNull { (_, list) ->
+                                                if (list.size == 1) {
+                                                    list.first()
+                                                } else {
+                                                    list.minByOrNull { it.walkingDistance }
+                                                }
+                                            }
 
                                         // encode results as JSON and navigate
                                             try {
@@ -481,11 +512,12 @@ fun RouteScreen(
                                                     val encoded = try { java.net.URLEncoder.encode(jsonStr, "UTF-8") } catch (_: Exception) { null }
                                                     withContext(Dispatchers.Main) {
                                                         Toast.makeText(context, "Đã tìm thấy ${results.size} gợi ý", Toast.LENGTH_SHORT).show()
-                                                        if (!encoded.isNullOrBlank() && encoded.length < 2000) {
-                                                            // navigate using path (works for small payloads)
-                                                            navController.navigate("route_results/$encoded") {
-                                                                launchSingleTop = true
-                                                            }
+                                                    if (!encoded.isNullOrBlank() && encoded.length < 2000) {
+                                                        // navigate using path (works for small payloads)
+                                                        android.util.Log.i("RouteScreen", "Found ${dedupedResults.size} routes, sending to results screen with stops data")
+                                                        navController.navigate("route_results/$encoded") {
+                                                            launchSingleTop = true
+                                                        }
                                                         } else {
                                                             // fallback to savedStateHandle-based route
                                                             navController.navigate("route_results") {

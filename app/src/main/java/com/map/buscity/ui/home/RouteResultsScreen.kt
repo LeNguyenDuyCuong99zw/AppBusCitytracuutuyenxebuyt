@@ -58,6 +58,15 @@ fun RouteResultsScreen(
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isLoadingSuggestion by remember { mutableStateOf(false) }
+    
+    // Debug: log when entering screen with results
+    LaunchedEffect(results) {
+        android.util.Log.i("RouteResultsScreen", "Entered with ${results.size} results")
+        results.forEachIndexed { idx, res ->
+            android.util.Log.i("RouteResultsScreen", "[$idx] Route: ${res.legs.firstOrNull()?.routeNumber} | stops: ${res.legs.firstOrNull()?.stops?.size ?: 0}")
+        }
+    }
+    
     Scaffold(containerColor = Color(0xFF1EA65A)) { inner ->
         Column(modifier = Modifier
             .fillMaxSize()
