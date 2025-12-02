@@ -24,36 +24,44 @@
       </header>
 
       <main>
-        <section id="admin-manage">
-          <h2>Quản lý Admins</h2>
-          <p style="font-size: 13px; color: #555">
-            Thêm/xóa UID để cấp quyền quản trị cho người khác.
-          </p>
-          <form
-            id="add-admin-form"
-            style="
-              display: flex;
-              gap: 8px;
-              align-items: center;
-              margin-bottom: 8px;
-            "
-          >
-            <input
-              id="admin-uid-input"
-              type="text"
-              placeholder="UID (dán vào)"
-              style="
-                flex: 1;
-                padding: 8px;
-                border-radius: 6px;
-                border: 1px solid #ddd;
-              "
-            />
-            <button id="fill-my-uid-btn" type="button">Dán UID của tôi</button>
-            <button id="add-admin-btn" type="submit">Thêm Admin</button>
-          </form>
-          <div id="admin-list"></div>
-          <div id="auth-error" class="auth-error hidden"></div>
+        <section id="accounts-section">
+          <div id="admin-manage">
+            <h2>👥 Quản lý Admins</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 16px">
+              Thêm/xóa UID để cấp quyền quản trị cho người khác.
+            </p>
+            <form id="add-admin-form">
+              <input
+                id="admin-uid-input"
+                type="text"
+                placeholder="UID (dán vào)"
+              />
+              <div class="form-actions" style="margin-top: 12px">
+                <button
+                  id="fill-my-uid-btn"
+                  type="button"
+                  class="primary-cta"
+                  style="flex: 0.8"
+                >
+                  Dán UID
+                </button>
+                <button
+                  id="add-admin-btn"
+                  type="submit"
+                  class="primary-cta"
+                  style="flex: 1.2"
+                >
+                  ➕ Thêm Admin
+                </button>
+              </div>
+            </form>
+            <div id="auth-error" class="auth-error hidden"></div>
+          </div>
+
+          <div id="list">
+            <h2>👤 Danh sách Admins</h2>
+            <div id="admin-list"></div>
+          </div>
         </section>
       </main>
 

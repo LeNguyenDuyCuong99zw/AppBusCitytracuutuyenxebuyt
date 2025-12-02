@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusCity Admin - Quản lý Tuyến</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>BusCity Admin - Quản Lý Tuyến</h1>
+        <div id="user-area" class="hidden header-user">
+          <span id="user-email"></span>
+          <button id="signout-btn">Đăng xuất</button>
+        </div>
+      </header>
+
+      <main>
+        <!-- Trang Đăng nhập -->
+        <section id="auth-hero" class="hero">
+          <div class="hero-left">
+            <div class="hero-illustration">
+              <svg
+                class="hero-mark"
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                aria-hidden
+              >
+                <path
+                  d="M12 2L13.9 8.6L20.9 9.2L15.5 13.6L17.2 20.4L12 16.8L6.8 20.4L8.5 13.6L3.1 9.2L10.1 8.6L12 2Z"
+                  fill="white"
+                  opacity="0.95"
+                />
+              </svg>
+              <div class="hero-content">
+                <h3 class="hero-remark">Trang Quản Lý</h3>
+                <h2 class="hero-title">Quản Lý Dữ Liệu Tuyến</h2>
+                <p class="hero-sub">Thêm, sửa, xóa thông tin tuyến xe buýt</p>
+              </div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="auth-card">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  margin-bottom: 8px;
+                "
+              >
+                <div
+                  style="
+                    width: 10px;
+                    height: 10px;
+                    background: var(--primary);
+                    border-radius: 3px;
+                  "
+                ></div>
+                <h3 style="margin: 0">Đăng nhập Admin</h3>
+              </div>
+              <form id="login-form" class="auth-form auth-card-form">
+                <input id="email" type="email" placeholder="Email" required />
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Mật khẩu"
+                  required
+                />
+                <div class="auth-actions">
+                  <button id="login-btn" type="submit" class="primary-cta">
+                    Đăng nhập
+                  </button>
+                </div>
+                <div id="auth-error" class="auth-error hidden"></div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- Trang Quản Lý Tuyến (sau đăng nhập) -->
+        <section id="routes-section" class="hidden">
+          <div id="editor">
+            <h2>Thêm/Chỉnh Sửa Tuyến</h2>
+            <form id="routes-form">
+              <input id="route-id" type="hidden" />
+              <input
+                id="route-number"
+                type="text"
+                placeholder="Số Tuyến (vd: 01, MRT1)"
+                required
+              />
+              <input
+                id="route-name"
+                type="text"
+                placeholder="Tên Tuyến (vd: Bến Thành - Chợ Lớn)"
+                required
+              />
+              <input
+                id="start-time"
+                type="time"
+                placeholder="Giờ Bắt Đầu"
+                required
+              />
+              <input
+                id="end-time"
+                type="time"
+                placeholder="Giờ Kết Thúc"
+                required
+              />
+              <input
+                id="price"
+                type="number"
+                placeholder="Giá Vé (VND)"
+                required
+              />
+              <input
+                id="student-price"
+                type="number"
+                placeholder="Giá Vé Học Sinh (VND)"
+              />
+              <input
+                id="monthly-pass-30"
+                type="number"
+                placeholder="Giá Tập 30 Vé (VND)"
+              />
+              <input
+                id="route-type"
+                type="text"
+                placeholder="Loại Tuyến (vd: Phổ thông - Có trợ giá)"
+              />
+              <input
+                id="run-time"
+                type="text"
+                placeholder="Thời Gian Chạy (vd: 35 phút)"
+              />
+              <input
+                id="spacing"
+                type="text"
+                placeholder="Giãn Cách (vd: 15 - 18 phút/chuyến)"
+              />
+              <input id="stops" type="number" placeholder="Số Chuyến/Ngày" />
+              <input
+                id="rating"
+                type="number"
+                step="0.1"
+                placeholder="Đánh Giá (0-5)"
+                min="0"
+                max="5"
+              />
+              <div class="form-actions">
+                <button type="submit" class="primary-cta">Lưu Tuyến</button>
+                <button type="button" id="cancel-btn" class="cancel-cta hidden">
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div id="list">
+            <h2>📋 Danh Sách Tuyến</h2>
+            <div style="margin-bottom: 16px">
+              <button
+                id="import-btn"
+                class="primary-cta"
+                style="background: #2e7d32"
+              >
+                📥 Import Dữ Liệu Mẫu
+              </button>
+            </div>
+            <div style="margin-bottom: 16px">
+              <input
+                id="search-route"
+                type="text"
+                placeholder="🔍 Tìm kiếm tuyến (số tuyến, tên tuyến)..."
+                style="
+                  width: 100%;
+                  padding: 10px 12px;
+                  border: 2px solid #e3ece6;
+                  border-radius: 10px;
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+            <div id="routes-list"></div>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <small
+          >Ứng dụng quản trị đơn giản — sử dụng Firebase Realtime Database &
+          Auth</small
+        >
+      </footer>
+    </div>
+
+    <!-- Firebase JS SDK (modular) via CDN -->
+    <script type="module" src="routes.js"></script>
+  </body>
+</html>

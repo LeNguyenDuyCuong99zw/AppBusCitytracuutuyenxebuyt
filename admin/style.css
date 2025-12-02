@@ -246,10 +246,13 @@ main {
 }
 
 /* =========================================================
-   NEWS PAGE — FORM EDITOR
+   FORM EDITOR — NEWS & ROUTES
    ========================================================= */
 
-#editor {
+#editor,
+#routes-section > #editor,
+#news-section > #editor,
+#accounts-section > #admin-manage {
   background: var(--surface-2);
   padding: 28px;
   border-radius: var(--radius-large);
@@ -258,27 +261,55 @@ main {
   margin-bottom: 28px;
 }
 
+#editor h2,
+#list h2,
+#admin-manage h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 #news-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
 
-#news-form input[type="text"],
-#news-form textarea,
-#news-form input[type="date"] {
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #e3ece6;
-  background: #fafdfb;
-  font-size: 15px;
-  transition: var(--transition);
+#routes-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
 }
 
+#routes-form input[type="text"],
+#routes-form input[type="time"],
+#routes-form input[type="number"],
+#news-form input[type="text"],
+#news-form input[type="email"],
+#news-form textarea,
+#news-form input[type="date"],
+#add-admin-form input[type="text"] {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e3ece6;
+  background: #fafdfb;
+  font-size: 14px;
+  transition: var(--transition);
+  font-family: "Inter", sans-serif;
+}
+
+#routes-form input:focus,
 #news-form input:focus,
-#news-form textarea:focus {
+#news-form textarea:focus,
+#add-admin-form input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background: #fff;
 }
 
 /* Upload file */
@@ -314,16 +345,100 @@ main {
   cursor: pointer;
 }
 
-/* NEWS LIST */
-#news-list {
+/* =========================================================
+   ROUTES SECTION — EDITOR & LIST
+   ========================================================= */
+
+#routes-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 22px;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+#routes-section #editor {
+  grid-column: 1;
+  max-height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+#routes-section #list {
+  grid-column: 2;
+}
+
+/* =========================================================
+   NEWS SECTION — EDITOR & LIST
+   ========================================================= */
+
+#news-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+#news-section #editor {
+  grid-column: 1;
+  max-height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+#news-section #list {
+  grid-column: 2;
+}
+
+/* =========================================================
+   ACCOUNTS SECTION — EDITOR & LIST
+   ========================================================= */
+
+#accounts-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+#accounts-section #admin-manage {
+  grid-column: 1;
+  max-height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+#accounts-section #list {
+  grid-column: 2;
+}
+
+@media (max-width: 1200px) {
+  #routes-section {
+    grid-template-columns: 1fr;
+  }
+  #routes-section #editor {
+    grid-column: 1;
+    position: static;
+  }
+  #routes-section #list {
+    grid-column: 1;
+  }
+}
+
+#list {
+  background: var(--surface-2);
+  padding: 28px;
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(15, 23, 32, 0.06);
+}
+
+/* ROUTES LIST */
+#routes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .news-card {
   background: var(--surface);
-  padding: 16px;
+  padding: 16px 20px;
   border-radius: var(--radius);
   box-shadow: var(--shadow-soft);
   border: 1px solid rgba(15, 23, 32, 0.05);
@@ -331,8 +446,26 @@ main {
 }
 
 .news-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-hover);
+}
+
+.news-card h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.news-card p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.news-card p strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .news-card img {
@@ -346,25 +479,98 @@ main {
 .news-actions {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .news-actions button {
   flex: 1;
-  padding: 10px;
+  padding: 10px 12px;
   border-radius: 10px;
   border: none;
   font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
- 	color: #fff;
+  color: #fff;
+  transition: var(--transition);
 }
 
 .news-actions .edit {
   background: var(--primary-600);
 }
 
+.news-actions .edit:hover {
+  background: var(--primary);
+  transform: translateY(-2px);
+}
+
 .news-actions .delete {
   background: var(--danger);
+}
+
+.news-actions .delete:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   FORM ACTIONS & BUTTONS
+   ========================================================= */
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  grid-column: 1 / -1;
+  margin-top: 8px;
+}
+
+#routes-form .form-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.form-actions .primary-cta,
+.form-actions .cancel-cta,
+#import-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  flex: 1;
+}
+
+.form-actions .primary-cta,
+#import-btn {
+  background: var(--primary);
+  color: #fff;
+}
+
+.form-actions .primary-cta:hover,
+#import-btn:hover {
+  background: var(--primary-600);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(5, 163, 106, 0.2);
+}
+
+.form-actions .cancel-cta {
+  background: var(--muted);
+  color: #fff;
+}
+
+.form-actions .cancel-cta:hover {
+  background: #5a6a5e;
+  transform: translateY(-2px);
+}
+
+#import-btn {
+  background: #2e7d32;
+  width: 100%;
+}
+
+#import-btn:hover {
+  background: #1b5e20;
 }
 
 /* =========================================================
@@ -379,11 +585,25 @@ main {
   border: 1px solid rgba(15, 23, 32, 0.06);
 }
 
+#add-admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 #add-admin-form input {
-  padding: 10px;
+  padding: 12px 14px;
   border-radius: 10px;
-  border: 1px solid #dce4dc;
-  flex: 1;
+  border: 1px solid #e3ece6;
+  background: #fafdfb;
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+#add-admin-form input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  background: #fff;
 }
 
 #add-admin-form button {
@@ -395,23 +615,74 @@ main {
   cursor: pointer;
   font-weight: 600;
   transition: var(--transition);
+  font-size: 14px;
 }
 
-#add-admin-btn {
-  background: var(--primary);
+#add-admin-form button:hover {
+  background: var(--primary-600);
+  transform: translateY(-2px);
 }
 
 #fill-my-uid-btn {
   background: var(--primary-600);
 }
 
+#fill-my-uid-btn:hover {
+  background: var(--primary);
+}
+
 #admin-list {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: 16px;
+  padding: 16px;
   border-radius: 12px;
   background: var(--surface);
   box-shadow: var(--shadow-soft);
   border: 1px solid rgba(15, 23, 32, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#admin-list .admin-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  border: 1px solid #e3ece6;
+  transition: var(--transition);
+}
+
+#admin-list .admin-item:hover {
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+#admin-list .admin-item span {
+  font-size: 13px;
+  color: var(--muted);
+  word-break: break-all;
+  font-family: monospace;
+  flex: 1;
+}
+
+#admin-list .admin-item button {
+  padding: 6px 10px;
+  margin-left: 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--danger);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  transition: var(--transition);
+}
+
+#admin-list .admin-item button:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
 }
 
 /* =========================================================
@@ -423,4 +694,94 @@ footer {
   text-align: right;
   font-size: 13px;
   color: var(--muted);
+}
+
+/* =========================================================
+   RESPONSIVE DESIGN
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  #routes-section,
+  #news-section,
+  #accounts-section {
+    grid-template-columns: 1fr;
+  }
+
+  #routes-section #editor,
+  #news-section #editor,
+  #accounts-section #admin-manage {
+    grid-column: 1;
+    position: static;
+  }
+
+  #routes-section #list,
+  #news-section #list,
+  #accounts-section #list {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin: 16px auto;
+    border-radius: 12px;
+  }
+
+  header {
+    padding: 16px 20px;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-size: 20px;
+  }
+
+  main {
+    padding: 20px;
+  }
+
+  #routes-section,
+  #news-section,
+  #accounts-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  #routes-form {
+    grid-template-columns: 1fr;
+  }
+
+  #news-form {
+    gap: 12px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    flex: 1;
+    width: 100%;
+  }
+
+  #add-admin-form {
+    flex-direction: column;
+  }
+
+  #add-admin-form button {
+    width: 100%;
+  }
+
+  #admin-list .admin-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #admin-list .admin-item button {
+    margin-left: 0;
+    margin-top: 8px;
+    width: 100%;
+  }
 }

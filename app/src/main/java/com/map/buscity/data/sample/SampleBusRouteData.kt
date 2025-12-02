@@ -10,7 +10,14 @@ object SampleBusRouteData {
             startTime = "05:00",
             endTime = "20:15",
             price = 5000,
-            rating = 4.8f
+            rating = 4.8f,
+            studentPrice = 3000,
+            monthlyPass30Price = 112500,
+            studentMonthlyPass = 0,
+            routeType = "Phổ thông - Có trợ giá",
+            runTime = "35 phút",
+            spacing = "15 - 18 phút/chuyến",
+            stops = 120
         ),
         BusRoute(
             routeNumber = "03",

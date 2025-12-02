@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BusCity Admin - Quản lý Tin tức</title>
+    <title>BusCity Admin - Quản lý Trạm Lượt Đi</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,7 +15,7 @@
   <body>
     <div class="container">
       <header>
-        <h1>BusCity Admin</h1>
+        <h1>BusCity Admin - Quản Lý Trạm Lượt Đi</h1>
         <div id="user-area" class="hidden header-user">
           <span id="user-email"></span>
           <button id="signout-btn">Đăng xuất</button>
@@ -44,10 +44,8 @@
               </svg>
               <div class="hero-content">
                 <h3 class="hero-remark">Trang Quản Lý</h3>
-                <h2 class="hero-title">Trang ADMIN và Quản Lý Nội Dung</h2>
-                <p class="hero-sub">
-                  Tin Tức , Trạm , Tuyến BUS , Phản Hồi , Thống Kê
-                </p>
+                <h2 class="hero-title">Quản Lý Dữ Liệu Trạm</h2>
+                <p class="hero-sub">Thêm, sửa, xóa thông tin trạm lượt đi</p>
               </div>
             </div>
           </div>
@@ -84,56 +82,86 @@
                     Đăng nhập
                   </button>
                 </div>
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 6px;
-                  "
-                >
-                  <button id="reset-password-btn" type="button" class="link">
-                    Quên mật khẩu
-                  </button>
-                  <div style="font-size: 12px; color: var(--muted)">
-                    Không có tài khoản? Liên hệ admin
-                  </div>
-                </div>
                 <div id="auth-error" class="auth-error hidden"></div>
               </form>
             </div>
           </div>
         </section>
 
-        <!-- Trang Dashboard (Tổng quan) -->
-        <section id="dashboard" class="hidden">
-          <h2>Bảng Điều Khiển</h2>
-          <div class="dashboard-menu">
-            <a href="news.html" class="dashboard-card">
-              <div class="card-icon">📰</div>
-              <div class="card-title">Quản Lý Tin Tức</div>
-              <div class="card-desc">Tạo, sửa, xóa tin tức</div>
-            </a>
-            <a href="routes.html" class="dashboard-card">
-              <div class="card-icon">🚌</div>
-              <div class="card-title">Quản Lý Tuyến</div>
-              <div class="card-desc">Quản lý dữ liệu tuyến xe buýt</div>
-            </a>
-            <a href="stops.html" class="dashboard-card">
-              <div class="card-icon">🚏</div>
-              <div class="card-title">Quản Lý Trạm Đi</div>
-              <div class="card-desc">Quản lý trạm lượt đi</div>
-            </a>
-            <a href="stops-return.html" class="dashboard-card">
-              <div class="card-icon">↩️</div>
-              <div class="card-title">Quản Lý Trạm Về</div>
-              <div class="card-desc">Quản lý trạm lượt về</div>
-            </a>
-            <a href="accounts.html" class="dashboard-card">
-              <div class="card-icon">👥</div>
-              <div class="card-title">Quản Lý Tài Khoản</div>
-              <div class="card-desc">Quản lý quyền Admin</div>
-            </a>
+        <!-- Trang Quản Lý Trạm (sau đăng nhập) -->
+        <section id="stops-section" class="hidden">
+          <div id="editor">
+            <h2>📍 Thêm/Chỉnh Sửa Trạm</h2>
+            <form id="stops-form">
+              <input id="stop-id" type="hidden" />
+              <input
+                id="route-number"
+                type="text"
+                placeholder="Số Tuyến (vd: 01, 18, MRT1)"
+                required
+              />
+              <input
+                id="stop-name"
+                type="text"
+                placeholder="Tên Trạm (vd: Bến Thành)"
+                required
+              />
+              <input
+                id="stop-order"
+                type="number"
+                placeholder="Thứ Tự Trạm (vd: 1, 2, 3...)"
+                required
+              />
+              <input
+                id="latitude"
+                type="number"
+                step="0.0001"
+                placeholder="Vĩ độ (vd: 10.7700)"
+                required
+              />
+              <input
+                id="longitude"
+                type="number"
+                step="0.0001"
+                placeholder="Kinh độ (vd: 106.6900)"
+                required
+              />
+              <div class="form-actions">
+                <button type="submit" class="primary-cta">Lưu Trạm</button>
+                <button type="button" id="cancel-btn" class="cancel-cta hidden">
+                  Hủy
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div id="list">
+            <h2>📋 Danh Sách Trạm Lượt Đi</h2>
+            <div style="margin-bottom: 16px">
+              <button
+                id="import-btn"
+                class="primary-cta"
+                style="background: #2e7d32"
+              >
+                📥 Import Dữ Liệu Mẫu
+              </button>
+            </div>
+            <div style="margin-bottom: 16px">
+              <input
+                id="search-stop"
+                type="text"
+                placeholder="🔍 Tìm kiếm trạm (số tuyến, tên trạm)..."
+                style="
+                  width: 100%;
+                  padding: 10px 12px;
+                  border: 2px solid #e3ece6;
+                  border-radius: 10px;
+                  font-size: 14px;
+                  font-family: inherit;
+                "
+              />
+            </div>
+            <div id="stops-list"></div>
           </div>
         </section>
       </main>
@@ -147,6 +175,6 @@
     </div>
 
     <!-- Firebase JS SDK (modular) via CDN -->
-    <script type="module" src="auth.js"></script>
+    <script type="module" src="stops.js"></script>
   </body>
 </html>
