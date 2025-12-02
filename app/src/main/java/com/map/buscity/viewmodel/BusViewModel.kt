@@ -1,14 +1,17 @@
 package com.map.buscity.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.map.buscity.data.BusDatabase
 import com.map.buscity.data.BusRoute
 import com.map.buscity.data.BusStop
 import com.map.buscity.repository.BusRepository
+import com.map.buscity.repository.FirebaseRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +24,7 @@ import java.util.concurrent.TimeUnit
 class BusViewModel(application: Application) : AndroidViewModel(application) {
     private val db = BusDatabase.getDatabase(application)
     private val repo = BusRepository(db.busRouteDao())
+    private val firebaseRepo = FirebaseRepository()
 
     private val stopDao = db.busStopDao()
     private val stopReturnDao = db.busStopReturnDao()
@@ -36,7 +40,44 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    val routes = repo.getAllRoutes()
+    companion object {
+        private const val TAG = "BusViewModel"
+    }
+
+    /**
+     * Combine local database routes with Firebase routes
+     * Priority: Firebase data overrides local data for routes with same number
+     * Falls back to local database if Firebase is empty
+     */
+    val routes = combine(
+        repo.getAllRoutes(),
+        firebaseRepo.getAllRoutesFlow()
+    ) { localRoutes, firebaseRoutes ->
+        if (firebaseRoutes.isEmpty()) {
+            // No Firebase data, use local routes
+            Log.d(TAG, "Using ${localRoutes.size} local routes (Firebase empty)")
+            localRoutes
+        } else {
+            // Merge: Firebase overrides local, then add any local-only routes
+            Log.d(TAG, "Merging ${localRoutes.size} local routes + ${firebaseRoutes.size} Firebase routes")
+            
+            val routeMap = mutableMapOf<String, BusRoute>()
+            
+            // First add all local routes
+            localRoutes.forEach { route ->
+                routeMap[route.routeNumber] = route
+            }
+            
+            // Then override with Firebase routes (Firebase takes priority)
+            firebaseRoutes.forEach { route ->
+                routeMap[route.routeNumber] = route
+            }
+            
+            val merged = routeMap.values.sortedBy { it.routeNumber }
+            Log.d(TAG, "Final merged result: ${merged.size} routes")
+            merged
+        }
+    }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun insertSampleData() {

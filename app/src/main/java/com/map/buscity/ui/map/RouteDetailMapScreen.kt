@@ -545,6 +545,7 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
     val displayedStops = remember { mutableStateOf<List<com.map.buscity.data.BusStop>>(emptyList()) }
 
     // Build parsedStops from the legs JSON when available so MapScreen and RouteResultsScreen match exactly.
+    // Now includes full stop list passed from RouteScreen for complete route visualization
     val parsedStopsForRouting = remember(legs, routeNumber) {
         val out = mutableListOf<com.map.buscity.data.BusStop>()
         try {
@@ -566,7 +567,12 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                     }
                 }
             }
-        } catch (_: Exception) {}
+            if (out.isNotEmpty()) {
+                Log.i("RouteDetail", "Loaded ${out.size} stops from parsed JSON leg stops")
+            }
+        } catch (e: Exception) {
+            Log.w("RouteDetail", "Error parsing stops from JSON: ${e.message}")
+        }
         out
     }
 
@@ -725,11 +731,37 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                     }
                 } catch (_: Exception) {}
 
+
             if (stopsForRouting.isNotEmpty()) {
-                val pts = busViewModel.fetchRouteLatLngsForStops(stopsForRouting, isReversed)
-                // reset walkingSegment
+                // Optimistic UI: immediately display straight-line polyline connecting stops
+                // so the user sees a route instantly while OSRM routing happens in background.
+                try {
+                    routeLatLngs = stopsForRouting.map { LatLng(it.lat, it.lng) }
+                } catch (_: Exception) {
+                    routeLatLngs = emptyList()
+                }
+
+                // reset walkingSegment immediately
                 walkingSegment = emptyList()
-                routeLatLngs = pts
+
+                // Fetch the routed geometry in background and replace the optimistic polyline when ready
+                isRoutingLoading = true
+                try {
+                    launch {
+                        try {
+                            val pts = busViewModel.fetchRouteLatLngsForStops(stopsForRouting, isReversed)
+                            // replace optimistic geometry with routed geometry
+                            routeLatLngs = pts
+                        } catch (e: Exception) {
+                            // keep optimistic geometry as fallback
+                        } finally {
+                            isRoutingLoading = false
+                        }
+                    }
+                } catch (e: Exception) {
+                    // if background launch fails, keep optimistic geometry and clear loading
+                    isRoutingLoading = false
+                }
 
                 // if we have an explicit destination and the routed polyline doesn't reach it,
                 // compute a walking segment from the closest point on route to the destination
