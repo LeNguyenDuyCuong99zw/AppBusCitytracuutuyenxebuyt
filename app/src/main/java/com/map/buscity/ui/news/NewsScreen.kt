@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 
 
 
@@ -293,93 +294,181 @@ fun NotificationGridList() {
                 dismissOnClickOutside = false
             )
         ) {
+            // Modern full-screen detail view: large header image + overlapping content card
             Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background),
+                modifier = Modifier.fillMaxSize(),
                 color = MaterialTheme.colorScheme.background
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = selected!!.title,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 16.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = { selected = null }) {
-                                Icon(Icons.Default.Close, contentDescription = "Close")
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color(0xFF2E7D32),
-                            titleContentColor = Color.White,
-                            navigationIconContentColor = Color.White
-                        )
-                    )
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Header image with gradient overlay
+                    Box(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
                     ) {
-                        // Tiêu đề lớn
-                        Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 8.dp)) {
-                            Text(
-                                text = selected!!.title,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E7D32),
-                                lineHeight = 28.sp
-                            )
-                        }
-
-                        // Thời gian nhỏ
-                        selected!!.date?.let { d ->
-                            Row(
-                                modifier = Modifier.padding(start = 20.dp, end = 20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "• $d",
-                                    color = Color.Gray,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Normal
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // Ảnh
                         if (!selected!!.imageUrl.isNullOrBlank()) {
                             AsyncImage(
                                 model = selected!!.imageUrl,
                                 contentDescription = selected!!.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(280.dp),
+                                modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
+                        } else {
+                            Box(modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFCADDC9)))
                         }
 
-                        // Nội dung
-                        Column(modifier = Modifier.padding(20.dp)) {
+                        // gradient overlay for readability
+                        Box(modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0.0f to Color.Transparent,
+                                    0.5f to Color.Black.copy(alpha = 0.25f),
+                                    1.0f to Color.Black.copy(alpha = 0.5f)
+                                )
+                            )
+                        )
+
+                        // Top controls: close + action
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            IconButton(
+                                onClick = { selected = null },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color.Black.copy(alpha = 0.35f), shape = RoundedCornerShape(10.dp))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Đóng",
+                                    tint = Color.White
+                                )
+                            }
+
+                            Row {
+                                IconButton(
+                                    onClick = { /* TODO: đánh dấu yêu thích */ },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(Color.Black.copy(alpha = 0.35f), shape = RoundedCornerShape(10.dp))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.FavoriteBorder,
+                                        contentDescription = "Yêu thích",
+                                        tint = Color.White
+                                    )
+                                }
+                            }
+                        }
+
+                        // Title overlay on header (max 2 lines)
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 20.dp, end = 20.dp, bottom = 18.dp)
+                        ) {
+                            Text(
+                                text = selected!!.title,
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    // Overlapping content card
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .offset(y = 220.dp) // overlap header
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 10.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            // Small header row inside card: date chip + source placeholder
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                selected!!.date?.let { d ->
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    ) {
+                                        Text(
+                                            text = d,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                                // placeholder for source / tag
+                                Text(
+                                    text = "Tin tức",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Title repeated in card for accessibility / context (smaller)
+                            Text(
+                                text = selected!!.title,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Divider()
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Content body with improved line height and color
                             Text(
                                 text = selected!!.content,
-                                fontSize = 14.sp,
-                                lineHeight = 22.sp,
-                                color = Color.Black.copy(alpha = 0.85f)
+                                fontSize = 15.sp,
+                                lineHeight = 24.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                             )
+
                             Spacer(modifier = Modifier.height(20.dp))
+
+                            // Actions row (share / mở ngoài)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(onClick = { /* TODO: chia sẻ */ }) {
+                                    Text(text = "Chia sẻ".uppercase(), fontSize = 12.sp)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                     }
                 }
             }
+
         }
     }
 }
@@ -389,60 +478,69 @@ fun NotificationGridCard(item: NewsItem, onClick: (NewsItem) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp)
             .clickable { onClick(item) },
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (!item.imageUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = item.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                // Fallback: blank background
-                Box(modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.LightGray))
-            }
-
-            // Overlay gradient for readability
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Image area: square, rounded top corners
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(70.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f))
-                        )
+                    .aspectRatio(1f)
+            ) {
+                if (!item.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.imageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
                     )
-            )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+                            .background(Color(0xFFF1F1F1))
+                    )
+                }
+            }
 
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(12.dp)
+            // Text area below image
+            Column(modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 10.dp)
             ) {
                 Text(
                     text = item.title,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // date
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // date / meta row
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    // small dot to mimic icon
+                    Text(
+                        text = "•",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(end = 6.dp)
+                    )
                     Text(
                         text = item.date ?: "",
                         fontSize = 12.sp,
-                        color = Color.White.copy(alpha = 0.9f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
