@@ -91,6 +91,8 @@ import kotlin.math.sin
 import kotlin.math.cos
 import kotlin.math.atan2
 import kotlin.math.sqrt
+import com.map.buscity.ui.favorite.FavoritesRepository
+import com.map.buscity.ui.favorite.FavoriteRoute
 
 val GreenPrimary = Color(0xFF2ECC71)
 val GreenDark = Color(0xFF27AE60)
@@ -147,6 +149,8 @@ fun StopMapScreen(
         ) {
             permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
+        // init favorites repository so we can add/remove favorites from this screen
+        FavoritesRepository.init(context)
     }
 
     var creationError by remember { mutableStateOf<String?>(null) }
@@ -467,10 +471,31 @@ fun StopMapScreen(
                                 color = Color.White,
                                 modifier = Modifier.weight(1f)
                             )
-                            IconButton(onClick = { }) {
+
+                            // Favorite toggle for selected stop
+                            val stopId = "${selectedStop!!.second}:${selectedStop!!.first}"
+                            val isFav = FavoritesRepository.items.any { it.id == stopId }
+
+                            IconButton(onClick = {
+                                if (isFav) {
+                                    FavoritesRepository.remove(stopId)
+                                } else {
+                                    FavoritesRepository.add(
+                                        FavoriteRoute(
+                                            id = stopId,
+                                            title = selectedStop!!.first,
+                                            type = "TRẠM DỪNG",
+                                            fromStop = "",
+                                            toStop = selectedStop!!.second,
+                                            timeRange = "",
+                                            price = ""
+                                        )
+                                    )
+                                }
+                            }) {
                                 Icon(
-                                    Icons.Default.FavoriteBorder,
-                                    contentDescription = "Favorite",
+                                    if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (isFav) "Đã yêu thích" else "Yêu thích",
                                     tint = Color.White,
                                     modifier = Modifier
                                         .width(28.dp)
