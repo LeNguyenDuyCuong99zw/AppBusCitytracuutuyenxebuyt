@@ -279,7 +279,7 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     navController.navigate("map/route/MRT1")
                 }
                 ModeButton(label = "Trạm", gradientColors = listOf(Color(0xFFFFE3B2), Color(0xFFFFB66A)), iconEmoji = "🚋", iconResName = "mode_tram") {
-                    navController.navigate("stop_map")
+                    navController.navigate("stop_map") { launchSingleTop = true }
                 }
             }
 

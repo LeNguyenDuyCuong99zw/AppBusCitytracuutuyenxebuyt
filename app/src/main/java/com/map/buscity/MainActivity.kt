@@ -139,7 +139,11 @@ class MainActivity : ComponentActivity() {
                             }
                             // StopMapScreen route (minimal map view for stops)
                             composable("stop_map") {
-                                com.map.buscity.ui.map.StopMapScreen(onBack = { navController.popBackStack() })
+                                // truyền navController để nút "Tìm đường" hoạt động
+                                com.map.buscity.ui.map.StopMapScreen(
+                                    navController = navController,
+                                    onBack = { navController.popBackStack() }
+                                )
                             }
                             composable("map/route/{routeNumber}") { backStackEntry ->
                                 val routeNumber = backStackEntry.arguments?.getString("routeNumber")

@@ -93,6 +93,8 @@ import kotlin.math.atan2
 import kotlin.math.sqrt
 import com.map.buscity.ui.favorite.FavoritesRepository
 import com.map.buscity.ui.favorite.FavoriteRoute
+import androidx.navigation.NavController
+
 
 val GreenPrimary = Color(0xFF2ECC71)
 val GreenDark = Color(0xFF27AE60)
@@ -102,6 +104,7 @@ val GreenBackground = Color(0xFF1E8449)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StopMapScreen(
+    navController: NavController? = null, // <- thêm optional NavController
     modifier: Modifier = Modifier.fillMaxSize(),
     initialLocation: LatLng? = null,
     onBack: () -> Unit = {}
@@ -797,7 +800,7 @@ fun StopMapScreen(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { /* Handle search routes */ },
+                    onClick = { navController?.navigate("routes") { launchSingleTop = true } }, // -> chuyển sang màn Tra cứu (routes)
                     modifier = Modifier
                         .weight(1f)
                         .height(62.dp),
@@ -822,7 +825,7 @@ fun StopMapScreen(
                 }
 
                 Button(
-                    onClick = { /* Handle route planning */ },
+                    onClick = { navController?.navigate("search") { launchSingleTop = true } }, // <- điều hướng tới Search
                     modifier = Modifier
                         .weight(1f)
                         .height(62.dp),
