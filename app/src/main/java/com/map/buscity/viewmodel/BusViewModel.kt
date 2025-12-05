@@ -54,9 +54,12 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
         firebaseRepo.getAllRoutesFlow()
     ) { localRoutes, firebaseRoutes ->
         if (firebaseRoutes.isEmpty()) {
-            // No Firebase data, use local routes
+            // No Firebase data, use local routes (sorted numerically)
             Log.d(TAG, "Using ${localRoutes.size} local routes (Firebase empty)")
-            localRoutes
+            localRoutes.sortedWith(compareBy { route ->
+                val numericPart = route.routeNumber.takeWhile { it.isDigit() }
+                if (numericPart.isEmpty()) Int.MAX_VALUE else numericPart.toIntOrNull() ?: Int.MAX_VALUE
+            })
         } else {
             // Merge: Firebase overrides local, then add any local-only routes
             Log.d(TAG, "Merging ${localRoutes.size} local routes + ${firebaseRoutes.size} Firebase routes")
@@ -73,11 +76,22 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
                 routeMap[route.routeNumber] = route
             }
             
-            val merged = routeMap.values.sortedBy { it.routeNumber }
+            // Sort by routeNumber numerically: extract numeric part, then sort
+            val merged = routeMap.values.sortedWith(compareBy { route ->
+                val numericPart = route.routeNumber.takeWhile { it.isDigit() }
+                if (numericPart.isEmpty()) Int.MAX_VALUE else numericPart.toIntOrNull() ?: Int.MAX_VALUE
+            })
             Log.d(TAG, "Final merged result: ${merged.size} routes")
             merged
         }
     }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    /**
+     * Get all stops from database (combined local + Firebase)
+     * Used for search suggestions
+     */
+    val stops = stopDao.getAllStops()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun insertSampleData() {

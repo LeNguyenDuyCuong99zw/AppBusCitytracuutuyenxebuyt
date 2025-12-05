@@ -10,6 +10,9 @@ interface BusStopDao {
     @Query("SELECT * FROM bus_stops WHERE route_number = :routeNumber ORDER BY stop_order")
     fun getStopsForRoute(routeNumber: String): Flow<List<BusStop>>
 
+    @Query("SELECT * FROM bus_stops ORDER BY route_number, stop_order")
+    fun getAllStops(): Flow<List<BusStop>>
+
     @Insert
     suspend fun insertStop(stop: BusStop)
 

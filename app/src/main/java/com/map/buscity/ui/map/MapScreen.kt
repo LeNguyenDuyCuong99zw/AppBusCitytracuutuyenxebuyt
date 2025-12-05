@@ -328,6 +328,7 @@ enum class Location(val cityName: String, val latLng: LatLng) {
 fun MapScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
     routeNumber: String? = null,
+    navController: androidx.navigation.NavController? = null,
     // Optional callback when user wants to open full route/bus page. Default no-op so existing calls unaffected.
     onOpenRoute: (String) -> Unit = {},
     viewModel: BusViewModel = viewModel(
@@ -1376,13 +1377,13 @@ fun MapScreen(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clickable {
-                                    routeNumber?.let { rn -> onOpenRoute(rn) }
+                                    navController?.popBackStack()
                                 }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 androidx.compose.material.Icon(
                                     imageVector = Icons.Filled.ArrowBack,
-                                    contentDescription = "Mở trang tuyến",
+                                    contentDescription = "Quay lại",
                                     tint = Color(0xFF2ECC71)
                                 )
                             }

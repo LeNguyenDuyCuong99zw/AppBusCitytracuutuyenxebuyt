@@ -92,6 +92,46 @@ object SampleBusRouteData {
             rating = 4.2f
         ),
         BusRoute(
+            routeNumber = "23",
+            routeName = "Bến xe buýt Chợ Lớn - Ngã ba Giồng - Cầu Lớn",
+            startTime = "04:00",
+            endTime = "20:30",
+            price = 6000,
+            rating = 2.6f
+        ),
+        BusRoute(
+            routeNumber = "30",
+            routeName = "Chợ Tân Hương - Bến xe buýt Văn Thánh",
+            startTime = "05:00",
+            endTime = "22:00",
+            price = 6000,
+            rating = 2.6f
+        ),
+        BusRoute(
+            routeNumber = "31",
+            routeName = "Đại Học Tôn Đức Thắng - Bến Thành - Đại học Văn Lang",
+            startTime = "05:00",
+            endTime = "22:00",
+            price = 6000,
+            rating = 2.7f
+        ),
+        BusRoute(
+            routeNumber = "32",
+            routeName = "Bến xe Miền Tây - Bến xe Ngã tư Ga",
+            startTime = "04:00",
+            endTime = "19:30",
+            price = 7000,
+            rating = 2.7f
+        ),
+        BusRoute(
+            routeNumber = "36",
+            routeName = "Bến Thành - Thới An",
+            startTime = "04:00",
+            endTime = "20:30",
+            price = 6000,
+            rating = 2.7f
+        ),
+        BusRoute(
             routeNumber = "48",
             routeName = "Bến xe buýt Tân Phú - Chợ Hiệp Thành",
             startTime = "04:30",

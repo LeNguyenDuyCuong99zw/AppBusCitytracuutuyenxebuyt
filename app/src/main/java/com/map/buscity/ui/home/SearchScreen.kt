@@ -473,8 +473,30 @@ fun SearchScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
 
-    // load sample stops to serve as suggestion source
-    val allStops = remember { SampleBusStopData.getSampleStops() }
+    // Get ViewModel to access Firebase stops + local stops
+    val viewModel: com.map.buscity.viewmodel.BusViewModel = viewModel(
+        factory = com.map.buscity.viewmodel.BusViewModelFactory(context.applicationContext as Application)
+    )
+    val firebaseStops by viewModel.stops.collectAsState()
+
+    // Combine Firebase stops with sample stops (Firebase takes priority if same name)
+    val allStops = remember(firebaseStops) {
+        val sampleStops = SampleBusStopData.getSampleStops()
+        val combined = mutableListOf<BusStop>()
+        
+        // Add all Firebase stops first
+        combined.addAll(firebaseStops)
+        
+        // Add sample stops that aren't already in Firebase
+        val firebaseNames = firebaseStops.map { it.stopName }.toSet()
+        sampleStops.forEach { sample ->
+            if (!firebaseNames.contains(sample.stopName)) {
+                combined.add(sample)
+            }
+        }
+        
+        combined
+    }
 
     // SharedPreferences for simple history (comma separated)
     val prefs: SharedPreferences = context.getSharedPreferences("search_prefs", 0)

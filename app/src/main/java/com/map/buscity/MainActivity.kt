@@ -134,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("map") {
                                 com.map.buscity.ui.map.MapScreen(
+                                    navController = navController,
                                     onOpenRoute = { navController.navigate("routes") }
                                 )
                             }
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
                                 val routeNumber = backStackEntry.arguments?.getString("routeNumber")
                                 com.map.buscity.ui.map.MapScreen(
                                     routeNumber = routeNumber,
+                                    navController = navController,
                                     onOpenRoute = { navController.navigate("routes") }
                                 )
                             }

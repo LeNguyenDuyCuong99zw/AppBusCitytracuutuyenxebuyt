@@ -87,6 +87,10 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.annotations.MarkerOptions
 import org.maplibre.android.annotations.PolylineOptions
 import com.map.buscity.util.StopUtils
+import org.maplibre.android.location.LocationComponent
+import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.modes.CameraMode
+import org.maplibre.android.location.modes.RenderMode
 
 /**
  * Simple route detail screen that displays a small map with the selected route and
@@ -515,6 +519,8 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
     var routeLatLngs by remember { mutableStateOf<List<LatLng>>(emptyList()) }
     // walking segment from last bus stop to exact destination (if needed)
     var walkingSegment by remember { mutableStateOf<List<LatLng>>(emptyList()) }
+    // walking segment from origin (current location) to first bus stop
+    var walkingSegmentStart by remember { mutableStateOf<List<LatLng>>(emptyList()) }
 
     // Loading indicator while routing/OSRM is in progress
     var isRoutingLoading by remember { mutableStateOf(false) }
@@ -596,9 +602,20 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                 } catch (_: Exception) { null }
             }
 
-            // Try common key names
-            val explicitOrigin = readCoordFromObj("originLat", "originLng") ?: readCoordFromObj("origin_lat", "origin_lng")
-            val explicitDest = readCoordFromObj("destinationLat", "destinationLng") ?: readCoordFromObj("destination_lat", "destination_lng")
+            // Try common key names from the JSON object
+            val explicitOriginFromJson = readCoordFromObj("originLat", "originLng") ?: readCoordFromObj("origin_lat", "origin_lng")
+            val explicitDestFromJson = readCoordFromObj("destinationLat", "destinationLng") ?: readCoordFromObj("destination_lat", "destination_lng")
+
+            // PRIORITY: Read from RouteResultsStore which contains the ACTUAL user location/POI
+            // that was captured when user clicked "TÌM ĐƯỜNG" in RouteScreen
+            val storeOriginLat = try { com.map.buscity.util.RouteResultsStore.originLat } catch (_: Exception) { null }
+            val storeOriginLng = try { com.map.buscity.util.RouteResultsStore.originLng } catch (_: Exception) { null }
+            val storeDestLat = try { com.map.buscity.util.RouteResultsStore.destinationLat } catch (_: Exception) { null }
+            val storeDestLng = try { com.map.buscity.util.RouteResultsStore.destinationLng } catch (_: Exception) { null }
+
+            // Prefer RouteResultsStore (actual user location) over JSON (which may be stop coordinates)
+            val explicitOrigin = if (storeOriginLat != null && storeOriginLng != null) LatLng(storeOriginLat, storeOriginLng) else explicitOriginFromJson
+            val explicitDest = if (storeDestLat != null && storeDestLng != null) LatLng(storeDestLat, storeDestLng) else explicitDestFromJson
 
             // Fallback: if firstLeg contains startStopOrder/startStopName we can use matching stop coordinates
             var originLatLng: LatLng? = explicitOrigin
@@ -630,6 +647,7 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
             destPointForMap = destLatLng
 
             try {
+                Log.i("RouteDetail", "RouteResultsStore origin: ${storeOriginLat ?: "null"}, ${storeOriginLng ?: "null"}")
                 Log.i("RouteDetail", "origin explicit: ${explicitOrigin?.latitude ?: "null"}, ${explicitOrigin?.longitude ?: "null"} | resolved origin: ${originLatLng?.latitude ?: "null"}, ${originLatLng?.longitude ?: "null"}")
                 Log.i("RouteDetail", "destination explicit: ${explicitDest?.latitude ?: "null"}, ${explicitDest?.longitude ?: "null"} | resolved dest: ${destLatLng?.latitude ?: "null"}, ${destLatLng?.longitude ?: "null"}")
                 Log.i("RouteDetail", "RouteResultsStore (dest): ${com.map.buscity.util.RouteResultsStore.destinationLat}, ${com.map.buscity.util.RouteResultsStore.destinationLng}")
@@ -770,8 +788,8 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                     if (destPt != null && routeLatLngs.isNotEmpty()) {
                         val closestOnRoute = findClosestPointOnRoute(destPt, routeLatLngs)
                         val distToDest = distanceMeters(closestOnRoute.latitude, closestOnRoute.longitude, destPt.latitude, destPt.longitude)
-                        // if farther than ~400m, we will not draw a walking segment
-                        val WALK_MAX_METERS = 400.0
+                        // if farther than ~500m, we will not draw a walking segment
+                        val WALK_MAX_METERS = 500.0
                         if (distToDest > 120.0 && distToDest <= WALK_MAX_METERS) {
                             val walkPts = try { fetchOsrmRoute(closestOnRoute.latitude, closestOnRoute.longitude, destPt.latitude, destPt.longitude) } catch (_: Exception) { emptyList<LatLng>() }
                             if (walkPts.isNotEmpty()) {
@@ -818,7 +836,7 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                 val closestOnRoute = findClosestPointOnRoute(destPointForMap!!, routeLatLngs)
                 val distMeters = distanceMeters(closestOnRoute.latitude, closestOnRoute.longitude, destPointForMap!!.latitude, destPointForMap!!.longitude)
                 val WALK_THRESHOLD_METERS = 80.0
-                val WALK_MAX_METERS = 400.0
+                val WALK_MAX_METERS = 500.0
                 if (distMeters > WALK_THRESHOLD_METERS && distMeters <= WALK_MAX_METERS) {
                     walkingSegment = try {
                         val seg = fetchOsrmRoute(closestOnRoute.latitude, closestOnRoute.longitude, destPointForMap!!.latitude, destPointForMap!!.longitude)
@@ -838,14 +856,67 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
         }
     }
 
+    // Compute walking segment from origin (user's current location) to the nearest bus stop
+    // This draws a walking path from where the user is to where they should catch the bus
+    LaunchedEffect(routeLatLngs, originPointForMap, displayedStops.value) {
+        try {
+            if (originPointForMap == null || routeLatLngs.isEmpty()) {
+                walkingSegmentStart = emptyList()
+                return@LaunchedEffect
+            }
+
+            // Find the first stop (where user should board the bus)
+            val firstStop = displayedStops.value.firstOrNull()
+            val firstStopLatLng = firstStop?.let { LatLng(it.lat, it.lng) }
+                ?: routeLatLngs.firstOrNull()
+            
+            if (firstStopLatLng == null) {
+                walkingSegmentStart = emptyList()
+                return@LaunchedEffect
+            }
+
+            // Calculate distance from origin to first stop
+            val distMeters = distanceMeters(
+                originPointForMap!!.latitude, originPointForMap!!.longitude,
+                firstStopLatLng.latitude, firstStopLatLng.longitude
+            )
+
+            // Draw walking segment if distance is more than 30m and less than 500m
+            val WALK_THRESHOLD_METERS = 30.0
+            val WALK_MAX_METERS = 500.0
+            if (distMeters > WALK_THRESHOLD_METERS && distMeters <= WALK_MAX_METERS) {
+                walkingSegmentStart = try {
+                    val seg = fetchOsrmRoute(
+                        originPointForMap!!.latitude, originPointForMap!!.longitude,
+                        firstStopLatLng.latitude, firstStopLatLng.longitude
+                    )
+                    if (seg.isNotEmpty()) {
+                        // Ensure walking polyline length is within limit
+                        val segLen = polylineLengthMeters(seg)
+                        if (segLen <= WALK_MAX_METERS) seg else emptyList()
+                    } else {
+                        listOf(originPointForMap!!, firstStopLatLng)
+                    }
+                } catch (_: Exception) {
+                    // Fallback: draw a straight line if OSRM fails
+                    listOf(originPointForMap!!, firstStopLatLng)
+                }
+            } else {
+                walkingSegmentStart = emptyList()
+            }
+        } catch (_: Exception) {
+            walkingSegmentStart = emptyList()
+        }
+    }
+
     // Consolidated overlay redraw: clear previous markers/polylines and draw the
     // authoritative set (route polyline, walking segment, origin/dest markers, stop markers).
-    LaunchedEffect(mapLibreMap, routeLatLngs, walkingSegment, originPointForMap, destPointForMap, displayedStops, isReversed) {
+    LaunchedEffect(mapLibreMap, routeLatLngs, walkingSegment, walkingSegmentStart, originPointForMap, destPointForMap, displayedStops, isReversed) {
         val map = mapLibreMap
         if (map == null) return@LaunchedEffect
 
         try {
-            try { Log.i("RouteDetail", "redraw overlays: routePts=${routeLatLngs.size}, walking=${walkingSegment.size}, displayedStops=${displayedStops.value.size}") } catch (_: Exception) {}
+            try { Log.i("RouteDetail", "redraw overlays: routePts=${routeLatLngs.size}, walkingEnd=${walkingSegment.size}, walkingStart=${walkingSegmentStart.size}, displayedStops=${displayedStops.value.size}") } catch (_: Exception) {}
             // Clear map and explicitly remove any managed polylines/markers to avoid leftovers
             try { map.clear() } catch (_: Exception) {}
             try { managedPolylines.forEach { try { it.remove() } catch (_: Exception) {} } } catch (_: Exception) {}
@@ -869,6 +940,13 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
             try { destMarkerRef.value?.remove() } catch (_: Exception) {}
             destMarkerRef.value = null
 
+            // draw walking segment from origin to first stop (gray dashed line)
+            if (walkingSegmentStart.isNotEmpty()) {
+                val gray = AndroidColor.parseColor("#757575")
+                val poly = addPolylineWithFadeLocal(map, walkingSegmentStart, gray, width = 4f)
+                if (poly != null) managedPolylines.add(poly)
+            }
+
             // draw main route polyline (if available)
             if (routeLatLngs.isNotEmpty()) {
                 val green = AndroidColor.parseColor("#1EA65A")
@@ -876,7 +954,7 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                 currentPolyline.value = poly
             }
 
-            // draw walking segment in gray
+            // draw walking segment from last stop to destination (gray line)
             if (walkingSegment.isNotEmpty()) {
                 val gray = AndroidColor.parseColor("#9E9E9E")
                 val poly = addPolylineWithFadeLocal(map, walkingSegment, gray, width = 4f)
@@ -927,12 +1005,17 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                 val boundsBuilder = org.maplibre.android.geometry.LatLngBounds.Builder()
                 var includeAny = false
 
+                // include walking segment from origin to first stop
+                if (walkingSegmentStart.isNotEmpty()) {
+                    walkingSegmentStart.forEach { boundsBuilder.include(it); includeAny = true }
+                }
+
                 // include routed geometry if present
                 if (routeLatLngs.isNotEmpty()) {
                     routeLatLngs.forEach { boundsBuilder.include(it); includeAny = true }
                 }
 
-                // include walking segment if present
+                // include walking segment to destination if present
                 if (walkingSegment.isNotEmpty()) {
                     walkingSegment.forEach { boundsBuilder.include(it); includeAny = true }
                 }
@@ -1001,11 +1084,31 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
     }
 
     val permissionState = com.map.buscity.ui.home.rememberLocationPermissionState()
-    LaunchedEffect(permissionState.hasPermission.value) {
+    
+    // Fetch user location when map is ready or permission changes
+    LaunchedEffect(permissionState.hasPermission.value, mapLibreMap) {
+        if (permissionState.hasPermission.value && mapLibreMap != null) {
+            try {
+                val client = LocationServices.getFusedLocationProviderClient(ctx)
+                client.lastLocation.addOnSuccessListener { loc -> 
+                    if (loc != null) {
+                        userLocation = LatLng(loc.latitude, loc.longitude)
+                    }
+                }
+            } catch (_: SecurityException) {}
+        }
+    }
+    
+    // Also fetch location when screen first loads if permission already granted
+    LaunchedEffect(Unit) {
         if (permissionState.hasPermission.value) {
             try {
                 val client = LocationServices.getFusedLocationProviderClient(ctx)
-                client.lastLocation.addOnSuccessListener { loc -> if (loc != null) userLocation = LatLng(loc.latitude, loc.longitude) }
+                client.lastLocation.addOnSuccessListener { loc -> 
+                    if (loc != null) {
+                        userLocation = LatLng(loc.latitude, loc.longitude)
+                    }
+                }
             } catch (_: SecurityException) {}
         }
     }
@@ -1331,7 +1434,27 @@ fun RouteDetailMapScreen(navController: NavController, routeJson: String?) {
                             val resId = ctx.resources.getIdentifier("maptiler_api_key", "string", ctx.packageName)
                             val apiKey = if (resId != 0) ctx.getString(resId) else ""
                             val styleUrl = if (apiKey.isNotBlank()) "https://api.maptiler.com/maps/basic/style.json?key=$apiKey" else "https://demotiles.maplibre.org/style.json"
-                            mlMap.setStyle(styleUrl)
+                            mlMap.setStyle(styleUrl) { style ->
+                                // Enable location component after style is loaded
+                                try {
+                                    if (ContextCompat.checkSelfPermission(
+                                            ctx,
+                                            Manifest.permission.ACCESS_FINE_LOCATION
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        val locationComponent = mlMap.locationComponent
+                                        val locationComponentActivationOptions = LocationComponentActivationOptions
+                                            .builder(ctx, style)
+                                            .build()
+                                        locationComponent.apply {
+                                            activateLocationComponent(locationComponentActivationOptions)
+                                            isLocationComponentEnabled = true
+                                            cameraMode = CameraMode.TRACKING
+                                            renderMode = RenderMode.NORMAL
+                                        }
+                                    }
+                                } catch (_: Exception) {}
+                            }
                             // Mirror MapScreen's UI settings so gestures, zoom and compass
                             // behave the same and camera idle events fire consistently.
                             try {
