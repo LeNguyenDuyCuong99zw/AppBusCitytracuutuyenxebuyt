@@ -31,6 +31,14 @@
           }
         },
         {
+          "client_id": "80584192899-s32gl71pomtlgleu5p5kld0napsnelrh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.map.buscity",
+            "certificate_hash": "284e076a55667a6087115c525a54a2acdeb1ca9a"
+          }
+        },
+        {
           "client_id": "80584192899-4m2vr8h84nk1tv1b7dorressbltgaark.apps.googleusercontent.com",
           "client_type": 3
         }
