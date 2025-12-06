@@ -134,9 +134,10 @@ fun LoginScreen() {
     // Hàm helper: map mã lỗi Google Sign-In sang tiếng Việt dễ hiểu
     fun mapGoogleError(code: Int, raw: String?): String =
         when (code) {
+            10 -> "Lỗi 10: Cấu hình SHA-1/SHA-256 chưa đúng trong Firebase Console.\nVui lòng thêm fingerprint:\nSHA-1: F5:A3:7D:17:2B:E1:BB:23:BD:A0:FB:D7:F7:01:14:4B:73:62:1A:52"
             CommonStatusCodes.CANCELED -> "Bạn đã hủy đăng nhập Google"
             CommonStatusCodes.NETWORK_ERROR -> "Lỗi mạng, vui lòng kiểm tra kết nối"
-            GoogleSignInStatusCodes.SIGN_IN_FAILED ->
+            12500, GoogleSignInStatusCodes.SIGN_IN_FAILED ->
                 "Đăng nhập Google thất bại. Kiểm tra cấu hình SHA-1/SHA-256 và OAuth."
             GoogleSignInStatusCodes.SIGN_IN_REQUIRED ->
                 "Vui lòng chọn tài khoản Google để tiếp tục"
@@ -152,12 +153,14 @@ fun LoginScreen() {
         try {
             // Lấy tài khoản Google
             val account = task.getResult(ApiException::class.java)
-            val token = account.idToken
+            // Log để debug
+            android.util.Log.d("GoogleSignIn", "Account email: ${account?.email}, idToken present: ${!account?.idToken.isNullOrBlank()}")
+            val token = account?.idToken
             // Nếu token rỗng → cấu hình client ID / SHA chưa đúng
             if (token.isNullOrBlank()) {
                 Toast.makeText(
                     context,
-                    "Thiếu web client ID hoặc SHA-1/SHA-256 chưa khai báo trong Firebase",
+                    "Lỗi: Thiếu idToken.\nVui lòng kiểm tra:\n1. SHA-1/SHA-256 trong Firebase\n2. OAuth Client ID trong Google Cloud\n3. Tải lại google-services.json",
                     Toast.LENGTH_LONG
                 ).show()
                 isLoading = false
@@ -198,12 +201,11 @@ fun LoginScreen() {
             }
         } catch (e: ApiException) {
             // Lỗi khi lấy tài khoản Google (user hủy, lỗi mạng, ...)
+            // Log chi tiết để debug
+            android.util.Log.e("GoogleSignIn", "Error code: ${e.statusCode}, message: ${e.message}")
             isLoading = false
-            Toast.makeText(
-                context,
-                mapGoogleError(e.statusCode, e.localizedMessage),
-                Toast.LENGTH_LONG
-            ).show()
+            val errorMsg = mapGoogleError(e.statusCode, e.localizedMessage)
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
         }
     }
 
