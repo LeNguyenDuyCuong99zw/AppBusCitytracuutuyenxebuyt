@@ -100,7 +100,7 @@ BusCity là ứng dụng hỗ trợ người dùng tra cứu tuyến xe buýt, x
 - Đảm bảo responsive design và tối ưu hiệu suất.
 
 ---
-## 📥 Tải ứng dụng  
+## 1. 📥 Tải ứng dụng  
 Quét mã QR để tải file apk:
 
 <p align="center">
@@ -108,7 +108,7 @@ Quét mã QR để tải file apk:
 </p>
 ## 📥 Clone & Chạy Dự Án BusCity
 
-### 🔽 1. Clone mã nguồn & mở dự án
+### 2. Clone mã nguồn & mở dự án
 ```bash
 git clone https://github.com/LeNguyenDuyCuong99zw/AppBusCitytracuutuyenxebuyt.git
 cd AppBusCitytracuutuyenxebuyt
