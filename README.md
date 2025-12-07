@@ -106,4 +106,17 @@ Quét mã QR để tải file apk:
 <p align="center">
   <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://drive.google.com/uc?id=17Kzvg-sokOV1GkapZTECVHmC-coKrx8Z&export=download" alt="Download BusCity APK" />
 </p>
+## 📥 Clone & Chạy Dự Án BusCity
+
+### 🔽 1. Clone mã nguồn & mở dự án
+```bash
+git clone https://github.com/LeNguyenDuyCuong99zw/AppBusCitytracuutuyenxebuyt.git
+cd AppBusCitytracuutuyenxebuyt
+
+1 Mở Android Studio
+
+2 Chọn Open → chọn thư mục dự án vừa clone
+
+3 Chờ Gradle Sync hoàn tất
+
 
