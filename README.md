@@ -100,3 +100,10 @@ BusCity là ứng dụng hỗ trợ người dùng tra cứu tuyến xe buýt, x
 - Đảm bảo responsive design và tối ưu hiệu suất.
 
 ---
+## 📥 Tải ứng dụng  
+Quét mã QR để tải file apk:
+
+<p align="center">
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://drive.google.com/uc?id=17Kzvg-sokOV1GkapZTECVHmC-coKrx8Z&export=download" alt="Download BusCity APK" />
+</p>
+
