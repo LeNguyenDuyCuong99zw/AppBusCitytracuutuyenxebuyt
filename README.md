@@ -62,7 +62,7 @@ BusCity là ứng dụng hỗ trợ người dùng tra cứu tuyến xe buýt, x
 
 ### **Lê Nguyễn Duy Cường**
 
-**MSSV: 080205008151**
+**MSSV: 080205008616**
 
 - Xây dựng toàn bộ hệ thống ứng dụng bao gồm Backend (Room Database, Repository, ViewModel), Frontend logic và Web Admin (Node.js/Express).
 - Phát triển các chức năng chính: Tra cứu tuyến, Tìm đường đi thông minh, Quản lý yêu thích, Hoạt động offline.
