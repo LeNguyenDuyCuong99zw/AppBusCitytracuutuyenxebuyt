@@ -1,7 +1,7 @@
 # 🚍 BusCity – Ứng dụng Tra Cứu Xe Buýt Thông Minh
 
 BusCity là ứng dụng hỗ trợ người dùng tra cứu tuyến xe buýt, xem lộ trình, theo dõi tin tức giao thông và lưu các tuyến yêu thích.  
-Ứng dụng được xây dựng bằng **Kotlin + Jetpack Compose**, tích hợp **Mapbox/MapLibre**, **Firebase**, và **Room Database**.
+Ứng dụng được xây dựng bằng **Kotlin + Jetpack Compose**, tích hợp **Mapbox/MapLibre**, **Firebase**, và **Room Database** và WebAdmin **Firebase**
 
 ---
 
