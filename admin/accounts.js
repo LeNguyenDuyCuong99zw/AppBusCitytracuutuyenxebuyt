@@ -41,6 +41,25 @@ const authErrorDiv = document.getElementById("auth-error");
 let adminsListening = false;
 const adminsRef = ref(db, "admins");
 
+// Tab navigation
+const tabButtons = document.querySelectorAll(".tab-btn");
+const tabContents = document.querySelectorAll(".tab-content");
+tabButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const tabName = btn.getAttribute("data-tab");
+    // Hide all
+    tabContents.forEach((c) => c.classList.remove("active"));
+    tabButtons.forEach((b) => b.classList.remove("active"));
+    // Show selected
+    document.getElementById(tabName).classList.add("active");
+    btn.classList.add("active");
+    // Load users if user tab is clicked
+    if (tabName === "user-manage") {
+      loadUsers();
+    }
+  });
+});
+
 // Logout handler
 signoutBtn.addEventListener("click", async () => {
   await signOut(auth);
@@ -141,6 +160,156 @@ if (fillMyUidBtn) {
   });
 }
 
+// ====== User Management ======
+const searchUserInput = document.getElementById("search-user");
+const searchUserBtn = document.getElementById("search-user-btn");
+const usersListDiv = document.getElementById("users-list");
+const userStatsDiv = document.getElementById("user-stats");
+
+let allUsers = [];
+let usersListening = false;
+const usersRef = ref(db, "users");
+
+// Load and listen to users
+async function loadUsers() {
+  if (usersListening) return;
+  usersListening = true;
+  onValue(usersRef, (snapshot) => {
+    allUsers = [];
+    snapshot.forEach((childSnapshot) => {
+      const user = childSnapshot.val();
+      user.uid = childSnapshot.key;
+      allUsers.push(user);
+    });
+    renderUserStats();
+    renderUsersList(allUsers);
+  });
+}
+
+// Render user statistics
+function renderUserStats() {
+  const total = allUsers.length;
+  const verified = allUsers.filter((u) => u.isVerified).length;
+  const ratedUsers = allUsers.filter(
+    (u) => u.totalRatings && u.totalRatings > 0
+  ).length;
+
+  userStatsDiv.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Tổng người dùng</div>
+      <div class="stat-value">${total}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Đã xác thực</div>
+      <div class="stat-value">${verified}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Người đánh giá</div>
+      <div class="stat-value">${ratedUsers}</div>
+    </div>
+  `;
+}
+
+// Render users list
+function renderUsersList(users) {
+  usersListDiv.innerHTML = "";
+
+  if (users.length === 0) {
+    usersListDiv.innerHTML =
+      '<div class="empty-users-state">📭 Chưa có người dùng nào</div>';
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "users-table";
+
+  // Header
+  const thead = document.createElement("thead");
+  thead.innerHTML = `
+    <tr>
+      <th>Tên</th>
+      <th>Email</th>
+      <th>Điện thoại</th>
+      <th>UID</th>
+      <th>Xác thực</th>
+      <th>Đánh giá</th>
+      <th>Ngày tạo</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  // Body
+  const tbody = document.createElement("tbody");
+  users.forEach((user) => {
+    const row = document.createElement("tr");
+    row.className = "users-table-row";
+
+    const verifiedBadge = user.isVerified
+      ? '<span class="badge badge-verified">✓ Có</span>'
+      : '<span class="badge badge-pending">⏳ Chưa</span>';
+
+    const createDate = user.createdAt
+      ? new Date(user.createdAt).toLocaleDateString("vi-VN")
+      : "N/A";
+
+    // Lấy thông tin từ user profile (displayName hoặc profileName từ DataStore)
+    const userName = escapeHtml(
+      user.profileName || user.displayName || user.name || "Ẩn danh"
+    );
+    const userEmail = escapeHtml(user.email || "N/A");
+    const userPhone = escapeHtml(user.profilePhone || user.phone || "N/A");
+
+    row.innerHTML = `
+      <td>${userName}</td>
+      <td>${userEmail}</td>
+      <td>${userPhone}</td>
+      <td class="uid-cell">${escapeHtml(user.uid)}</td>
+      <td>${verifiedBadge}</td>
+      <td class="rating-cell">${user.totalRatings || 0}</td>
+      <td class="date-cell">${createDate}</td>
+    `;
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  usersListDiv.appendChild(table);
+}
+
+// Search users
+if (searchUserBtn) {
+  searchUserBtn.addEventListener("click", () => {
+    const query =
+      (searchUserInput && searchUserInput.value.toLowerCase().trim()) || "";
+    const filtered = allUsers.filter(
+      (u) =>
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.uid && u.uid.toLowerCase().includes(query)) ||
+        (u.profileName && u.profileName.toLowerCase().includes(query)) ||
+        (u.displayName && u.displayName.toLowerCase().includes(query))
+    );
+    renderUsersList(filtered);
+  });
+}
+
+// Search on Enter
+if (searchUserInput) {
+  searchUserInput.addEventListener("keyup", (e) => {
+    if (e.key === "Enter" && searchUserBtn) {
+      searchUserBtn.click();
+    }
+  });
+}
+
+// Helper to escape HTML
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Auth state change
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -155,6 +324,7 @@ onAuthStateChanged(auth, (user) => {
       }
       userEmailSpan.textContent = user.email || user.uid;
       startListeningAdmins();
+      loadUsers(); // Load users on auth success
     });
   } else {
     window.location.href = "index.html";

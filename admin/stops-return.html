@@ -51,23 +51,9 @@
           </div>
           <div class="hero-right">
             <div class="auth-card">
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  margin-bottom: 8px;
-                "
-              >
-                <div
-                  style="
-                    width: 10px;
-                    height: 10px;
-                    background: var(--primary);
-                    border-radius: 3px;
-                  "
-                ></div>
-                <h3 style="margin: 0">Đăng nhập Admin</h3>
+              <div class="auth-header-flex">
+                <div class="accent-dot" aria-hidden></div>
+                <h3 class="no-margin">Đăng nhập Admin</h3>
               </div>
               <form id="login-form" class="auth-form auth-card-form">
                 <input id="email" type="email" placeholder="Email" required />
@@ -137,28 +123,17 @@
 
           <div id="list">
             <h2>📋 Danh Sách Trạm Lượt Về</h2>
-            <div style="margin-bottom: 16px">
-              <button
-                id="import-btn"
-                class="primary-cta"
-                style="background: #2e7d32"
-              >
+            <div class="mb-16">
+              <button id="import-btn" class="primary-cta import-btn--green">
                 📥 Import Dữ Liệu Mẫu
               </button>
             </div>
-            <div style="margin-bottom: 16px">
+            <div class="mb-16">
               <input
                 id="search-stop"
                 type="text"
                 placeholder="🔍 Tìm kiếm trạm (số tuyến, tên trạm)..."
-                style="
-                  width: 100%;
-                  padding: 10px 12px;
-                  border: 2px solid #e3ece6;
-                  border-radius: 10px;
-                  font-size: 14px;
-                  font-family: inherit;
-                "
+                class="search-inline"
               />
             </div>
             <div id="returns-list"></div>

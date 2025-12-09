@@ -55,6 +55,16 @@ const searchInput = document.getElementById("search-stop");
 
 let stopsData = {};
 
+// Helpers
+function safeString(v) {
+  return v === undefined || v === null ? "" : String(v);
+}
+
+function safeNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
 // Login logic
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -119,16 +129,24 @@ function loadStops() {
 
 // Display stops
 function displayStops() {
+  if (!stopsList) return;
   stopsList.innerHTML = "";
   Object.entries(stopsData).forEach(([id, stop]) => {
     const stopCard = document.createElement("div");
     stopCard.className = "news-card";
+    const rNumber = safeString(stop.routeNumber);
+    const sName = safeString(stop.stopName);
+    const order = safeNumber(stop.stopOrder);
+    const lat = safeNumber(stop.lat);
+    const lng = safeNumber(stop.lng);
+    const pos =
+      lat !== null && lng !== null
+        ? `(${lat.toFixed(4)}, ${lng.toFixed(4)})`
+        : "N/A";
     stopCard.innerHTML = `
-      <h3>Tuyến ${stop.routeNumber} - ${stop.stopName}</h3>
-      <p><strong>Thứ tự:</strong> ${stop.stopOrder}</p>
-      <p><strong>Vị trí:</strong> (${stop.lat.toFixed(4)}, ${stop.lng.toFixed(
-      4
-    )})</p>
+      <h3>Tuyến ${rNumber} - ${sName}</h3>
+      <p><strong>Thứ tự:</strong> ${order !== null ? order : "N/A"}</p>
+      <p><strong>Vị trí:</strong> ${pos}</p>
       <div class="news-actions">
         <button class="edit" onclick="editStop('${id}')">Sửa</button>
         <button class="delete" onclick="deleteStop('${id}')">Xóa</button>
@@ -150,19 +168,26 @@ function filterStops(searchTerm) {
   }
 
   Object.entries(stopsData).forEach(([id, stop]) => {
-    const routeNumber = stop.routeNumber.toLowerCase();
-    const stopName = stop.stopName.toLowerCase();
+    const routeNumber = safeString(stop.routeNumber).toLowerCase();
+    const stopName = safeString(stop.stopName).toLowerCase();
 
     // Match if search term is in route number or stop name
     if (routeNumber.includes(term) || stopName.includes(term)) {
       const stopCard = document.createElement("div");
       stopCard.className = "news-card";
+      const rNumber = safeString(stop.routeNumber);
+      const sName = safeString(stop.stopName);
+      const order = safeNumber(stop.stopOrder);
+      const lat = safeNumber(stop.lat);
+      const lng = safeNumber(stop.lng);
+      const pos =
+        lat !== null && lng !== null
+          ? `(${lat.toFixed(4)}, ${lng.toFixed(4)})`
+          : "N/A";
       stopCard.innerHTML = `
-        <h3>Tuyến ${stop.routeNumber} - ${stop.stopName}</h3>
-        <p><strong>Thứ tự:</strong> ${stop.stopOrder}</p>
-        <p><strong>Vị trí:</strong> (${stop.lat.toFixed(4)}, ${stop.lng.toFixed(
-        4
-      )})</p>
+        <h3>Tuyến ${rNumber} - ${sName}</h3>
+        <p><strong>Thứ tự:</strong> ${order !== null ? order : "N/A"}</p>
+        <p><strong>Vị trí:</strong> ${pos}</p>
         <div class="news-actions">
           <button class="edit" onclick="editStop('${id}')">Sửa</button>
           <button class="delete" onclick="deleteStop('${id}')">Xóa</button>
@@ -174,7 +199,7 @@ function filterStops(searchTerm) {
 
   // Show message if no results
   if (stopsList.children.length === 0) {
-    stopsList.innerHTML = `<p style="text-align: center; color: #999; padding: 20px;">Không tìm thấy trạm nào phù hợp với "${searchTerm}"</p>`;
+    stopsList.innerHTML = `<p class="empty-state-message">Không tìm thấy trạm nào phù hợp với "${searchTerm}"</p>`;
   }
 }
 
@@ -182,11 +207,14 @@ function filterStops(searchTerm) {
 window.editStop = (id) => {
   const stop = stopsData[id];
   stopIdInput.value = id;
-  routeNumberInput.value = stop.routeNumber;
-  stopNameInput.value = stop.stopName;
-  stopOrderInput.value = stop.stopOrder;
-  latitudeInput.value = stop.lat;
-  longitudeInput.value = stop.lng;
+  routeNumberInput.value = safeString(stop.routeNumber);
+  stopNameInput.value = safeString(stop.stopName);
+  stopOrderInput.value =
+    safeNumber(stop.stopOrder) !== null ? safeNumber(stop.stopOrder) : "";
+  latitudeInput.value =
+    safeNumber(stop.lat) !== null ? safeNumber(stop.lat) : "";
+  longitudeInput.value =
+    safeNumber(stop.lng) !== null ? safeNumber(stop.lng) : "";
   cancelBtn.classList.remove("hidden");
   window.scrollTo(0, 0);
 };

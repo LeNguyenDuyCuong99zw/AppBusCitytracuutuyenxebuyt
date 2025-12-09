@@ -62,6 +62,15 @@ const searchInput = document.getElementById("search-route");
 
 let routesData = {};
 
+// Small helpers to guard against null/undefined values coming from DB
+function safeString(v) {
+  return v === undefined || v === null ? "" : String(v);
+}
+
+function safeNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 // Login logic
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -130,12 +139,21 @@ function displayRoutes() {
   Object.entries(routesData).forEach(([id, route]) => {
     const routeCard = document.createElement("div");
     routeCard.className = "news-card";
+    const rNumber = safeString(route.routeNumber);
+    const rName = safeString(route.routeName);
+    const price = safeNumber(route.price);
     routeCard.innerHTML = `
-      <h3>Tuyến ${route.routeNumber} - ${route.routeName}</h3>
-      <p><strong>Giờ:</strong> ${route.startTime} - ${route.endTime}</p>
-      <p><strong>Giá:</strong> ${route.price.toLocaleString()} VND</p>
-      <p><strong>Loại:</strong> ${route.routeType || "N/A"}</p>
-      <p><strong>Thời gian chạy:</strong> ${route.runTime || "N/A"}</p>
+      <h3>Tuyến ${rNumber} - ${rName}</h3>
+      <p><strong>Giờ:</strong> ${safeString(route.startTime)} - ${safeString(
+      route.endTime
+    )}</p>
+      <p><strong>Giá:</strong> ${
+        price !== null ? price.toLocaleString() + " VND" : "N/A"
+      }</p>
+      <p><strong>Loại:</strong> ${safeString(route.routeType) || "N/A"}</p>
+      <p><strong>Thời gian chạy:</strong> ${
+        safeString(route.runTime) || "N/A"
+      }</p>
       <p><strong>Đánh giá:</strong> ⭐ ${route.rating || 0}</p>
       <div class="news-actions">
         <button class="edit" onclick="editRoute('${id}')">Sửa</button>
@@ -158,19 +176,28 @@ function filterRoutes(searchTerm) {
   }
 
   Object.entries(routesData).forEach(([id, route]) => {
-    const routeNumber = route.routeNumber.toLowerCase();
-    const routeName = route.routeName.toLowerCase();
+    const routeNumber = safeString(route.routeNumber).toLowerCase();
+    const routeName = safeString(route.routeName).toLowerCase();
 
     // Match if search term is in route number or route name
     if (routeNumber.includes(term) || routeName.includes(term)) {
       const routeCard = document.createElement("div");
       routeCard.className = "news-card";
+      const rNumber = safeString(route.routeNumber);
+      const rName = safeString(route.routeName);
+      const price = safeNumber(route.price);
       routeCard.innerHTML = `
-        <h3>Tuyến ${route.routeNumber} - ${route.routeName}</h3>
-        <p><strong>Giờ:</strong> ${route.startTime} - ${route.endTime}</p>
-        <p><strong>Giá:</strong> ${route.price.toLocaleString()} VND</p>
-        <p><strong>Loại:</strong> ${route.routeType || "N/A"}</p>
-        <p><strong>Thời gian chạy:</strong> ${route.runTime || "N/A"}</p>
+        <h3>Tuyến ${rNumber} - ${rName}</h3>
+        <p><strong>Giờ:</strong> ${safeString(route.startTime)} - ${safeString(
+        route.endTime
+      )}</p>
+        <p><strong>Giá:</strong> ${
+          price !== null ? price.toLocaleString() + " VND" : "N/A"
+        }</p>
+        <p><strong>Loại:</strong> ${safeString(route.routeType) || "N/A"}</p>
+        <p><strong>Thời gian chạy:</strong> ${
+          safeString(route.runTime) || "N/A"
+        }</p>
         <p><strong>Đánh giá:</strong> ⭐ ${route.rating || 0}</p>
         <div class="news-actions">
           <button class="edit" onclick="editRoute('${id}')">Sửa</button>
@@ -183,7 +210,7 @@ function filterRoutes(searchTerm) {
 
   // Show message if no results
   if (routesList.children.length === 0) {
-    routesList.innerHTML = `<p style="text-align: center; color: #999; padding: 20px;">Không tìm thấy tuyến nào phù hợp với "${searchTerm}"</p>`;
+    routesList.innerHTML = `<p class="empty-state-message">Không tìm thấy tuyến nào phù hợp với "${searchTerm}"</p>`;
   }
 }
 
@@ -191,8 +218,8 @@ function filterRoutes(searchTerm) {
 window.editRoute = (id) => {
   const route = routesData[id];
   routeIdInput.value = id;
-  routeNumberInput.value = route.routeNumber;
-  routeNameInput.value = route.routeName;
+  routeNumberInput.value = safeString(route.routeNumber);
+  routeNameInput.value = safeString(route.routeName);
   startTimeInput.value = route.startTime;
   endTimeInput.value = route.endTime;
   priceInput.value = route.price;

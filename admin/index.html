@@ -53,23 +53,9 @@
           </div>
           <div class="hero-right">
             <div class="auth-card">
-              <div
-                style="
-                  display: flex;
-                  align-items: center;
-                  gap: 10px;
-                  margin-bottom: 8px;
-                "
-              >
-                <div
-                  style="
-                    width: 10px;
-                    height: 10px;
-                    background: var(--primary);
-                    border-radius: 3px;
-                  "
-                ></div>
-                <h3 style="margin: 0">Đăng nhập Admin</h3>
+              <div class="auth-header-flex">
+                <div class="auth-icon-dot"></div>
+                <h3 class="auth-title">Đăng nhập Admin</h3>
               </div>
               <form id="login-form" class="auth-form auth-card-form">
                 <input id="email" type="email" placeholder="Email" required />
@@ -84,18 +70,11 @@
                     Đăng nhập
                   </button>
                 </div>
-                <div
-                  style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 6px;
-                  "
-                >
+                <div class="auth-actions-row">
                   <button id="reset-password-btn" type="button" class="link">
                     Quên mật khẩu
                   </button>
-                  <div style="font-size: 12px; color: var(--muted)">
+                  <div class="auth-signup-text">
                     Không có tài khoản? Liên hệ admin
                   </div>
                 </div>
@@ -128,6 +107,11 @@
               <div class="card-icon">↩️</div>
               <div class="card-title">Quản Lý Trạm Về</div>
               <div class="card-desc">Quản lý trạm lượt về</div>
+            </a>
+            <a href="route-ratings.html" class="dashboard-card">
+              <div class="card-icon">⭐</div>
+              <div class="card-title">Quản Lý Đánh Giá</div>
+              <div class="card-desc">Duyệt và xóa đánh giá tuyến</div>
             </a>
             <a href="accounts.html" class="dashboard-card">
               <div class="card-icon">👥</div>

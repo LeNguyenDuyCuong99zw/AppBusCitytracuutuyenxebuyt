@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BusCity Admin - Quản lý Đánh giá Tuyến</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      .ratings-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .rating-card {
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .rating-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .rating-user {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .rating-user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #2ecc71;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .rating-user-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .rating-user-name {
+        font-weight: 600;
+        color: #333;
+      }
+
+      .rating-user-id {
+        font-size: 12px;
+        color: #999;
+      }
+
+      .rating-stars {
+        font-size: 18px;
+        color: #ffc107;
+        font-weight: 700;
+      }
+
+      .rating-route {
+        display: inline-block;
+        background: #2ecc71;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      .rating-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .rating-status.verified {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .rating-status.pending {
+        background: #fff3e0;
+        color: #e65100;
+      }
+
+      .rating-feedback {
+        color: #666;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .rating-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding-top: 8px;
+        border-top: 1px solid #eee;
+      }
+
+      .rating-time {
+        font-size: 12px;
+        color: #999;
+      }
+
+      .rating-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .ratings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .ratings-stats {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #999;
+        text-transform: uppercase;
+      }
+
+      .stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2ecc71;
+      }
+
+      .filter-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .filter-group input,
+      .filter-group select {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+
+      .search-input {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .filter-select {
+        min-width: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>BusCity Admin</h1>
+        <div class="header-user">
+          <span id="user-email"></span>
+          <button id="signout-btn">Đăng xuất</button>
+          <a href="index.html" class="header-link">← Quay lại</a>
+        </div>
+      </header>
+
+      <main>
+        <section id="ratings-section">
+          <div class="ratings-header">
+            <h2>⭐ Quản lý Đánh giá Tuyến</h2>
+          </div>
+
+          <div class="ratings-stats" id="stats"></div>
+
+          <div class="filter-group">
+            <label for="searchRoute" class="sr-only">Tìm tuyến</label>
+            <input
+              type="text"
+              id="searchRoute"
+              placeholder="Tìm tuyến..."
+              class="search-input"
+              title="Tìm tuyến số hoặc tên tuyến"
+            />
+            <label for="filterStatus" class="sr-only"
+              >Lọc theo trạng thái</label
+            >
+            <select
+              id="filterStatus"
+              class="filter-select"
+              title="Lọc theo trạng thái duyệt"
+            >
+              <option value="">Tất cả trạng thái</option>
+              <option value="verified">Đã duyệt</option>
+              <option value="pending">Chưa duyệt</option>
+            </select>
+            <button id="filter-btn" class="primary-cta">🔍 Lọc</button>
+            <button id="refresh-btn" class="secondary-cta">🔄 Làm mới</button>
+          </div>
+
+          <div class="ratings-container" id="ratings-list"></div>
+        </section>
+      </main>
+
+      <footer>
+        <small
+          >Ứng dụng quản trị đơn giản — sử dụng Firebase Realtime Database &
+          Auth</small
+        >
+      </footer>
+    </div>
+
+    <script type="module" src="route-ratings.js"></script>
+  </body>
+</html>

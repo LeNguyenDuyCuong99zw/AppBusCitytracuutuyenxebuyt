@@ -25,9 +25,20 @@
 
       <main>
         <section id="accounts-section">
-          <div id="admin-manage">
+          <!-- Tab navigation -->
+          <div class="tab-navigation">
+            <button class="tab-btn active" data-tab="admin-manage">
+              👥 Admins
+            </button>
+            <button class="tab-btn" data-tab="user-manage">
+              👤 Người dùng
+            </button>
+          </div>
+
+          <!-- Admin Management Tab -->
+          <div id="admin-manage" class="tab-content active">
             <h2>👥 Quản lý Admins</h2>
-            <p style="font-size: 13px; color: #666; margin-bottom: 16px">
+            <p class="muted-small mb-16">
               Thêm/xóa UID để cấp quyền quản trị cho người khác.
             </p>
             <form id="add-admin-form">
@@ -36,31 +47,55 @@
                 type="text"
                 placeholder="UID (dán vào)"
               />
-              <div class="form-actions" style="margin-top: 12px">
+              <div class="form-actions admin-form-actions">
                 <button
                   id="fill-my-uid-btn"
                   type="button"
-                  class="primary-cta"
-                  style="flex: 0.8"
+                  class="primary-cta btn-fill-uid"
                 >
                   Dán UID
                 </button>
                 <button
                   id="add-admin-btn"
                   type="submit"
-                  class="primary-cta"
-                  style="flex: 1.2"
+                  class="primary-cta btn-add-admin"
                 >
                   ➕ Thêm Admin
                 </button>
               </div>
             </form>
             <div id="auth-error" class="auth-error hidden"></div>
+
+            <div id="list">
+              <h2>👤 Danh sách Admins</h2>
+              <div id="admin-list"></div>
+            </div>
           </div>
 
-          <div id="list">
-            <h2>👤 Danh sách Admins</h2>
-            <div id="admin-list"></div>
+          <!-- User Management Tab -->
+          <div id="user-manage" class="tab-content">
+            <h2>👤 Quản lý Người dùng</h2>
+            <p class="muted-small mb-16">
+              Xem thông tin và thống kê người dùng.
+            </p>
+
+            <!-- User Stats -->
+            <div id="user-stats" class="user-stats-container"></div>
+
+            <!-- User Search/Filter -->
+            <div class="filter-group">
+              <label for="search-user" class="sr-only">Tìm người dùng</label>
+              <input
+                type="text"
+                id="search-user"
+                placeholder="Tìm email, tên hoặc UID..."
+                class="search-input"
+              />
+              <button id="search-user-btn" class="primary-cta">🔍 Tìm</button>
+            </div>
+
+            <!-- Users List -->
+            <div id="users-list" class="users-list-container"></div>
           </div>
         </section>
       </main>
