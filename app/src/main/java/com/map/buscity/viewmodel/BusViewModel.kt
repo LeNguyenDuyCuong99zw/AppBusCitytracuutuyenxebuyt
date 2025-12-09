@@ -347,4 +347,27 @@ class BusViewModel(application: Application) : AndroidViewModel(application) {
     fun clearAllCachedData() {
         clearCachedRoute(null)
     }
+
+    // ====================================
+    // ROUTE RATINGS MANAGEMENT
+    // ====================================
+
+    /**
+     * Get ratings for a specific route as Flow
+     */
+    fun getRatingsForRoute(routeNumber: String) = firebaseRepo.getRatingsForRouteFlow(routeNumber)
+
+    /**
+     * Save a new rating (suspend function)
+     */
+    suspend fun saveRouteRating(rating: com.map.buscity.data.RouteRating): Boolean {
+        return firebaseRepo.saveRouteRating(rating)
+    }
+
+    /**
+     * Delete a rating (suspend function)
+     */
+    suspend fun deleteRouteRating(ratingId: String, routeNumber: String): Boolean {
+        return firebaseRepo.deleteRouteRating(ratingId, routeNumber)
+    }
 }

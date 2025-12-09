@@ -33,6 +33,7 @@ import com.map.buscity.viewmodel.BusViewModel
 import com.map.buscity.viewmodel.BusViewModelFactory
 import com.map.buscity.ui.favorite.FavoriteRoute
 import com.map.buscity.ui.favorite.FavoritesRepository
+import com.map.buscity.repository.FirebaseRepository
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,6 +159,18 @@ fun BusRouteItem(route: BusRoute) {
 
     // get context here (inside a @Composable) and reuse inside onClick
     val ctx = LocalContext.current
+
+    // Get ratings from Firebase and calculate average
+    val firebaseRepo = remember { com.map.buscity.repository.FirebaseRepository() }
+    val ratings by firebaseRepo.getRatingsForRouteFlow(route.routeNumber).collectAsState(initial = emptyList())
+    
+    // Calculate average rating from all ratings
+    val averageRating = if (ratings.isNotEmpty()) {
+        ratings.map { it.rating }.average().toFloat()
+    } else {
+        route.rating
+    }
+    val ratingCount = ratings.size
      
     Surface(
         modifier = Modifier
@@ -259,7 +272,7 @@ fun BusRouteItem(route: BusRoute) {
                     modifier = Modifier.padding(bottom = 4.dp)
                 ) {
                     Text(
-                        text = "${route.rating}",
+                        text = String.format("%.1f", averageRating),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color(0xFF2ECC71)
                     )
@@ -268,6 +281,12 @@ fun BusRouteItem(route: BusRoute) {
                         contentDescription = "Rating",
                         modifier = Modifier.size(16.dp),
                         tint = Color(0xFF2ECC71)
+                    )
+                    Text(
+                        text = "($ratingCount)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
                 IconButton(

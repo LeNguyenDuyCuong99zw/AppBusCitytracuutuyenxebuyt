@@ -1098,7 +1098,22 @@ fun MapScreen(
                                     }
                                 }
                             }
-                            3 -> Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) { Text(text = "Đánh giá (placeholder)") }
+                            3 -> {
+                                // ĐÁNH GIÁ - Hiển thị giao diện đánh giá tuyến
+                                val routeNum = routeNumber ?: ""
+                                val route = remember(routeNum) {
+                                    routes.find { it.routeNumber == routeNum }
+                                }
+                                
+                                if (route != null) {
+                                    // Hiển thị RouteRatingScreen
+                                    RouteRatingScreen(route = route)
+                                } else {
+                                    Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
+                                        Text(text = "Chưa chọn tuyến để đánh giá")
+                                    }
+                                }
+                            }
                         }
                     }
                 }

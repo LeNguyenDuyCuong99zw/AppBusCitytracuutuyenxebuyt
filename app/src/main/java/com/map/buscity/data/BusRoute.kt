@@ -19,5 +19,6 @@ data class BusRoute(
     @ColumnInfo(name = "route_type") val routeType: String = "Phổ thông",
     @ColumnInfo(name = "run_time") val runTime: String = "0",
     @ColumnInfo(name = "spacing") val spacing: String = "0",
-    @ColumnInfo(name = "stops") val stops: Int = 0
+    @ColumnInfo(name = "stops") val stops: Int = 0,
+    @ColumnInfo(name = "rating_count") val ratingCount: Int = 0  // Tổng số lượt đánh giá
 )

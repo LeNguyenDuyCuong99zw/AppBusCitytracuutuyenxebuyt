@@ -5,12 +5,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [BusRoute::class, BusStop::class, RouteCache::class, BusStopReturn::class], version = 4, exportSchema = false)
+@Database(entities = [BusRoute::class, BusStop::class, RouteCache::class, BusStopReturn::class, RouteRating::class], version = 5, exportSchema = false)
 abstract class BusDatabase : RoomDatabase() {
     abstract fun busRouteDao(): BusRouteDao
     abstract fun busStopDao(): BusStopDao
     abstract fun busStopReturnDao(): BusStopReturnDao
     abstract fun routeCacheDao(): RouteCacheDao
+    abstract fun routeRatingDao(): RouteRatingDao
 
     companion object {
         @Volatile
